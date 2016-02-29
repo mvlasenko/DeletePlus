@@ -71,21 +71,29 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="GUI\DeletePlusPopupResourceGroup.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="AlchemyPlugin.cs" />
-    <Compile Include="Controllers\PluginController.cs" />
-    <Compile Include="GUI\PluginCommandSet.cs" />
-    <Compile Include="GUI\PluginContextMenuExtension.cs" />
-    <Compile Include="GUI\PluginResourceGroup.cs" />
-    <Compile Include="GUI\PluginRibbonToolbarButton.cs" />
+    <Compile Include="Controllers\DeletePlusController.cs" />
+    <Compile Include="GUI\DeletePlusCommandSet.cs" />
+    <Compile Include="GUI\DeletePlusContextMenuExtension.cs" />
+    <Compile Include="GUI\DeletePlusResourceGroup.cs" />
+    <Compile Include="GUI\DeletePlusRibbonToolbarButton.cs" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="a4t.xml">
       <SubType>Designer</SubType>
     </Content>
-    <Content Include="Static\Commands\SayHelloCommand.js" />
-    <Content Include="Static\Images\hello-16x16.png" />
-    <Content Include="Static\Images\hello-32x32.png" />
+    <Content Include="Static\DeletePlusPopup.aspx">
+      <SubType>ASPXCodeBehind</SubType>
+    </Content>
+    <Content Include="Static\Images\delete-plus.16x16.png" />
+    <Content Include="Static\Images\delete-plus.24x24.png" />
+    <Content Include="Static\Images\delete-plus.32x32.png" />
+    <Content Include="Static\Images\delete-plus.48x48.png" />
+    <Content Include="Static\Scripts\DeletePlusCommand.js" />
+    <Content Include="Static\Scripts\DeletePlusPopup.js" />
+    <Content Include="Static\Styles\DeletePlusPopup.css" />
     <Content Include="Static\Styles\Styles.css" />
   </ItemGroup>
   <ItemGroup>

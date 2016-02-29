@@ -19,8 +19,8 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Controllers
     /// <c>/Alchemy/Plugins/{YourPluginName}/api/{action}</c>
     /// <c>Alchemy.Plugins.YourPluginName.Api.action()</c>
     /// </remarks>
-    [AlchemyRoutePrefix("Service")]
-    public class PluginController : AlchemyApiController
+    [AlchemyRoutePrefix("DeletePlusService")]
+    public class DeletePlusController : AlchemyApiController
     {
         /// // GET /Alchemy/Plugins/{YourPluginName}/api/{YourServiceName}/YourRoute
         /// <summary>
@@ -34,7 +34,7 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Controllers
         /// </remarks>
         [HttpGet]
         [Route("Hello")]
-        public string SayHello()
+        public string DeletePlus()
         {
             return String.Format("Hello Alchemist {0}!", User.GetName());
         }

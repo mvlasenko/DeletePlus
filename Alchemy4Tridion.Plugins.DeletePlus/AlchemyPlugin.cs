@@ -5,7 +5,7 @@ namespace Alchemy4Tridion.Plugins.DeletePlus
     /// <summary>
     /// Required entry class that represents your plugin. There should only be one IAlchemyPlugin in your project.
     /// </summary>
-	public class AlchemyPlugin : Alchemy4Tridion.Plugins.AlchemyPluginBase
+	public class AlchemyPlugin : AlchemyPluginBase
     {
         /// <summary>
         /// Optional override of Configure method if you want to add your own plugin utilities

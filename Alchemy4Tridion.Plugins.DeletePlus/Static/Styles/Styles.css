@@ -1,21 +1,21 @@
 ﻿/**
- * Style the context menu button... #say_hello_cm is defined in our Context Menu Extension class' AssignId property
+ * Style the context menu button... #delete_plus_cm is defined in our Context Menu Extension class' AssignId property
  */
-.contextmenu #say_hello_cm > .image {
-    background-image: url('${ImgUrl}hello-16x16.png');
+.contextmenu #delete_plus_cm > .image {
+    background-image: url('${ImgUrl}delete-plus.16x16.png');
 }
 
 /**
- * Style the ribbon tool bar button... #SayHelloButton is defined in our Ribbon Toolbar Button class' AssignId property
+ * Style the ribbon tool bar button... #DeletePlusButton is defined in our Ribbon Toolbar Button class' AssignId property
  */
 /* main icon in full ribbon mode */
-.ribbontoolbar #SayHelloButton.button .image, .ribbontoolbar #SayHelloButton.button .image
+.ribbontoolbar #DeletePlusButton.button .image, .ribbontoolbar #DeletePlusButton.button .image
 {
-    background-image: url('${ImgUrl}hello-32x32.png');
+    background-image: url('${ImgUrl}delete-plus.32x32.png');
 }
 
 /* main icon in minimized ribbon mode */
-.ribbontoolbar.minimized #SayHelloButton.button .image, .ribbontoolbar.minimized #SayHelloButton.button .image
+.ribbontoolbar.minimized #DeletePlusButton.button .image, .ribbontoolbar.minimized #DeletePlusButton.button .image
 {
-    background-image: url('${ImgUrl}hello-16x16.png');
+    background-image: url('${ImgUrl}delete-plus.16x16.png');
 }

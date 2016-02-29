@@ -2,18 +2,18 @@
 
 namespace Alchemy4Tridion.Plugins.DeletePlus.GUI
 {
-    public class PluginRibbonToolbarButton : Alchemy4Tridion.Plugins.GUI.Configuration.RibbonToolbarExtension
+    public class DeletePlusRibbonToolbarButton : RibbonToolbarExtension
     {
-        public PluginRibbonToolbarButton()
+        public DeletePlusRibbonToolbarButton()
         {
             // The unique identifier used for the html element created.
-            AssignId = "SayHelloButton";
+            AssignId = "DeletePlusButton";
 
             // The name of the command to execute when clicked
-            Command = "SayHello";
+            Command = "DeletePlus";
 
             // The label of the button.
-            Name = "Say Hello";
+            Name = "Delete Plus";
 
             // The page tab to assign this extension to. See Constants.PageIds.
             PageId = Constants.PageIds.HomePage;
@@ -22,10 +22,10 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.GUI
             GroupId = Constants.GroupIds.HomePage.ShareGroup;
 
             // The tooltip label that will get applied.
-            Title = "Say Hello";
+            Title = "Delete Plus";
 
-            // Add a dependency to the resource group that contains the files/commands that this toolbar extension will use.
-            Dependencies.Add<PluginResourceGroup>();
+            // We need to add our resource group as a dependency to this extension
+            Dependencies.Add<DeletePlusResourceGroup>();
 
             // apply the extension to a specific view.
             Apply.ToView(Constants.Views.DashboardView, "DashboardToolbar");

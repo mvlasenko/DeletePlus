@@ -2,12 +2,12 @@
 
 namespace Alchemy4Tridion.Plugins.DeletePlus.GUI
 {
-    public class PluginCommandSet : Alchemy4Tridion.Plugins.GUI.Configuration.CommandSet
+    public class DeletePlusCommandSet : CommandSet
     {
-        public PluginCommandSet()
+        public DeletePlusCommandSet()
         {
             // we only need to add the name of our command
-            AddCommand("SayHello");
+            AddCommand("DeletePlus");
         }
     }
 }
