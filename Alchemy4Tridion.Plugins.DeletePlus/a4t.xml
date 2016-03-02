@@ -1,5 +1,9 @@
 <?xml version="1.0"?>
 <plugin xmlns:c="http://www.alchemywebstore.com/configuration/definitions" xmlns="http://www.alchemywebstore.com/">
+  <id>662724ab-a415-431a-a3d3-98beddc57e0b</id>
   <name>Delete_Plus</name>
-  <description><![CDATA[]]></description>
+  <description><![CDATA[Delete item and the chanin of dependent items.]]></description>
+  <version>1.0.0.0</version>
+  <settings />
+  <versionId />
 </plugin>

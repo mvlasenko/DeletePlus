@@ -11,6 +11,8 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.GUI
             // only the filename of our CSS files are needed
             AddFile("DeletePlusPopup.css");
 
+            AddFile("favicon.png");
+
             // Since Alchemy comes with several libraries I can reference JQuery this way and avoid having
             // to add it myself
             Dependencies.AddLibraryJQuery();

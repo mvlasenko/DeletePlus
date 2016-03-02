@@ -8,7 +8,7 @@
                 <dependency runat="server">Tridion.Web.UI.Editors.CME</dependency>
                 <dependency runat="server">Tridion.Web.UI.Editors.CME.commands</dependency>
                 <dependency runat="server">Alchemy.Resources.Libs.Jquery</dependency>
-                <dependency runat="server">Alchemy.Plugins.${PluginName}.Resources.NotUsedPopupResourceGroup</dependency>
+                <dependency runat="server">Alchemy.Plugins.${PluginName}.Resources.DeletePlusPopupResourceGroup</dependency>
             </dependencies>
         </cc:tridionmanager>
 		<link rel='shortcut icon' type='image/x-icon' href='${ImgUrl}favicon.png' />
@@ -21,10 +21,8 @@
             <progress id="progBar"></progress>
         </div>
 		<div class="controls">
-			<div class="button disabled" id="open_item"><span class="text">Open</span></div>
-			<div class="button disabled" id="go_to_item_location"><span class="text">Go To Location</span></div>
             <div class="button disabled" id="delete_item"><span class="text">Delete</span></div>
-            <div class="button" id="refresh_items"><span class="text">Refresh</span></div>
+            <div class="button disabled" id="refresh_items"><span class="text">Refresh</span></div>
 		</div>
     </body>
 </html>

@@ -12,7 +12,7 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.GUI
             Name = "DeletePlusMenu";
 
             // Use this property to specify where in the context menu your items will go
-            InsertBefore = Constants.ContextMenuIds.MainContextMenu.SendItemLink;
+            InsertBefore = Constants.ContextMenuIds.MainContextMenu.Delete;
 
             // Use AddItem() or AddSubMenu() to add items for this context menu
 
