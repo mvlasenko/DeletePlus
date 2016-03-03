@@ -9,21 +9,6 @@
         None
     }
 
-    public enum FieldType
-    {
-        SingleLineText,
-        MultiLineText,
-        Xhtml,
-        Date,
-        Number,
-        Keyword,
-        Multimedia,
-        ExternalLink,
-        ComponentLink,
-        EmbeddedSchema,
-        None
-    }
-
     public enum SchemaType
     {
         Any,
@@ -34,17 +19,6 @@
         Parameters,
         Bundle,
         None
-    }
-
-    public enum ObjectType
-    {
-        Any,
-        Component,
-        Folder,
-        ComponentOrFolder,
-        Page,
-        StructureGroup,
-        PageOrStructureGroup
     }
 
     public enum LinkStatus

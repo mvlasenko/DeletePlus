@@ -74,14 +74,9 @@
   <ItemGroup>
     <Compile Include="Models\ComponentFieldData.cs" />
     <Compile Include="Helpers\Enums.cs" />
-    <Compile Include="Models\FieldInfo.cs" />
-    <Compile Include="Models\FieldMappingInfo.cs" />
     <Compile Include="Helpers\MainHelper.cs" />
     <Compile Include="Models\HistoryItemInfo.cs" />
-    <Compile Include="Models\HistoryItemMappingInfo.cs" />
-    <Compile Include="Models\HistoryMappingInfo.cs" />
     <Compile Include="Models\ItemInfo.cs" />
-    <Compile Include="Models\ReplacementInfo.cs" />
     <Compile Include="Models\ResultInfo.cs" />
     <Compile Include="Models\TbbInfo.cs" />
     <Compile Include="GUI\DeletePlusPopupResourceGroup.cs" />
