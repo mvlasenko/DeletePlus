@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Web.Http;
-using System.Xml.Linq;
 using Alchemy4Tridion.Plugins.DeletePlus.Helpers;
 using Alchemy4Tridion.Plugins.DeletePlus.Models;
-using Tridion.ContentManager.CoreService.Client;
 
 namespace Alchemy4Tridion.Plugins.DeletePlus.Controllers
 {
@@ -77,24 +75,13 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Controllers
                 string html = "<div class=\"usingItems results disabled\">";
                 html += CreateItemsHeading();
 
-                var filterData = new OrganizationalItemItemsFilterData();
-                filterData.ItemTypes = new[]{ItemType.Schema,
-                                             ItemType.Component,
-                                             ItemType.TemplateBuildingBlock,
-                                             ItemType.ComponentTemplate,
-                                             ItemType.PageTemplate};
-                // When using OrganizationalItemItemsFilterData, we need to explicitly set a flag to include paths in resultXml.
-                filterData.IncludePathColumn = true;
-                filterData.Recursive = true;
-
-                // Use the filter to get the list of ALL items contained in the folder represented by tcmItem.
-                // We have to add "tcm:" here because we can't pass a full tcm id (with colon) via a URL.
-                XElement resultXml = this.Client.GetListXml("tcm:" + tcmItem, filterData);
+                List<ResultInfo> results = new List<ResultInfo>();
+                MainHelper.Delete(this.Client, "tcm:" + tcmItem, true, string.Empty, results);
 
                 // Iterate over all items returned by the above filtered list returned.
-                foreach (XElement currentItem in resultXml.Nodes())
+                foreach (ResultInfo result in results)
                 {
-                    html += CreateItem(currentItem) + Environment.NewLine;
+                    html += CreateItem(result) + Environment.NewLine;
                 }
 
                 // Close the div we opened above

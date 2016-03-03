@@ -3,8 +3,11 @@ using Tridion.ContentManager.CoreService.Client;
 
 namespace Alchemy4Tridion.Plugins.DeletePlus.Models
 {
-    public class ResultInfo 
+    public class ResultInfo
     {
+        private string _TcmId;
+        private ItemType _ItemType;
+
         public ItemInfo Item { get; set; }
 
         public string Message { get; set; }
@@ -18,8 +21,26 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Models
             get
             {
                 if (this.Item == null)
-                    return string.Empty;
+                    return this._TcmId;
                 return this.Item.TcmId;
+            }
+            set
+            {
+                this._TcmId = value;
+            }
+        }
+
+        public ItemType ItemType
+        {
+            get
+            {
+                if (this.Item == null)
+                    return this._ItemType;
+                return this.Item.ItemType;
+            }
+            set
+            {
+                this._ItemType = value;
             }
         }
 
@@ -53,22 +74,12 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Models
             }
         }
 
-        public ItemType ItemType
-        {
-            get
-            {
-                if (this.Item == null)
-                    return ItemType.None;
-                return this.Item.ItemType;
-            }
-        }
-
         public string WebDav
         {
             get
             {
                 if (this.Item == null)
-                    return string.Empty;
+                    return this.TcmId;
                 return this.Item.WebDav;
             }
         }

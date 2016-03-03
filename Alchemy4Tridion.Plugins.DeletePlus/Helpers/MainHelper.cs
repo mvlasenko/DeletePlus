@@ -1286,7 +1286,7 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
             return values;
         }
 
-        public static XElement EmbeddedSchemaToComponentLink(this XElement sourceElement, SessionAwareCoreServiceClient client, ComponentLinkFieldDefinitionData targetField, string sourceTcmId, List<FieldMappingInfo> childFieldMapping, string targetFolderUri, int index, List<ResultInfo> results)
+        public static XElement EmbeddedSchemaToComponentLink(this XElement sourceElement, SessionAwareCoreServiceClient client, ComponentLinkFieldDefinitionData targetField, ItemInfo sourceItem, List<FieldMappingInfo> childFieldMapping, string targetFolderUri, int index, List<ResultInfo> results)
         {
             if (sourceElement == null || targetField == null)
                 return null;
@@ -1307,12 +1307,12 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
             XNamespace ns = XDocument.Parse(xml).Root.GetDefaultNamespace();
 
             //get fixed xml
-            string newXml = GetFixedContent(client, xml, ns, sourceTcmId, targetSchema, targetSchema.RootElementName, targetFields, targetFolderUri, childFieldMapping, results);
+            string newXml = GetFixedContent(client, xml, ns, sourceItem, targetSchema, targetSchema.RootElementName, targetFields, targetFolderUri, childFieldMapping, results);
 
             if (string.IsNullOrEmpty(newXml))
                 return null;
 
-            ComponentData sourceComponent = GetComponent(client, sourceTcmId);
+            ComponentData sourceComponent = GetComponent(client, sourceItem.TcmId);
 
             string title = string.Format("[{0:00}0] {1}", index, sourceComponent.Title);
 
@@ -1349,7 +1349,7 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
             string xml = sourceComponent.Content;
 
             //get fixed xml
-            string newXml = GetFixedContent(client, xml, sourceSchema.NamespaceUri, sourceComponentUri, targetEmbeddedSchema, targetField.Name, targetEmbeddedSchemaFields, targetFolderUri, childFieldMapping, results);
+            string newXml = GetFixedContent(client, xml, sourceSchema.NamespaceUri, sourceComponent.ToItem(), targetEmbeddedSchema, targetField.Name, targetEmbeddedSchemaFields, targetFolderUri, childFieldMapping, results);
 
             if (string.IsNullOrEmpty(newXml))
                 return null;
@@ -1432,7 +1432,7 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
             return res;
         }
 
-        public static List<ComponentFieldData> GetFixedValues(SessionAwareCoreServiceClient client, string sourceXml, XNamespace sourceNs, string sourceTcmId, SchemaData targetSchema, string targetRootElementName, List<ItemFieldDefinitionData> targetFields, string targetFolderUri, List<FieldMappingInfo> fieldMapping, List<ResultInfo> results)
+        public static List<ComponentFieldData> GetFixedValues(SessionAwareCoreServiceClient client, string sourceXml, XNamespace sourceNs, ItemInfo sourceItem, SchemaData targetSchema, string targetRootElementName, List<ItemFieldDefinitionData> targetFields, string targetFolderUri, List<FieldMappingInfo> fieldMapping, List<ResultInfo> results)
         {
             if (fieldMapping == null || string.IsNullOrEmpty(sourceXml))
                 return null;
@@ -1460,8 +1460,8 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                 //construct Component Link to the source component
                 if (mapping.SourceField.GetFieldFullName() == "< this component link >")
                 {
-                    ComponentData component = GetComponent(client, sourceTcmId);
-                    item.Value = GetComponentLink(sourceTcmId, component.Title, targetField.Name);
+                    ComponentData component = GetComponent(client, sourceItem.TcmId);
+                    item.Value = GetComponentLink(sourceItem.TcmId, component.Title, targetField.Name);
                 }
 
                 //construct new Embedded Schema
@@ -1490,7 +1490,7 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                     {
                         if (!targetField.IsMultiValue())
                         {
-                            item.Value = elements.FirstOrDefault().EmbeddedSchemaToComponentLink(client, targetField as ComponentLinkFieldDefinitionData, sourceTcmId, mapping.ChildFieldMapping, targetFolderUri, 0, results);
+                            item.Value = elements.FirstOrDefault().EmbeddedSchemaToComponentLink(client, targetField as ComponentLinkFieldDefinitionData, sourceItem, mapping.ChildFieldMapping, targetFolderUri, 0, results);
                         }
                         else
                         {
@@ -1499,7 +1499,7 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                             foreach (XElement element in elements)
                             {
                                 index ++;
-                                values.Add(element.EmbeddedSchemaToComponentLink(client, targetField as ComponentLinkFieldDefinitionData, sourceTcmId, mapping.ChildFieldMapping, targetFolderUri, index, results));
+                                values.Add(element.EmbeddedSchemaToComponentLink(client, targetField as ComponentLinkFieldDefinitionData, sourceItem, mapping.ChildFieldMapping, targetFolderUri, index, results));
                             }
                             item.Value = values;
                         }
@@ -1559,7 +1559,7 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
             return res;
         }
 
-        private static string GetFixedContent(SessionAwareCoreServiceClient client, string sourceXml, XNamespace sourceNs, string sourceTcmId, SchemaData targetSchema, string targetRootElementName, List<ItemFieldDefinitionData> targetFields, string targetFolderUri, List<FieldMappingInfo> fieldMapping, List<ResultInfo> results)
+        private static string GetFixedContent(SessionAwareCoreServiceClient client, string sourceXml, XNamespace sourceNs, ItemInfo sourceItem, SchemaData targetSchema, string targetRootElementName, List<ItemFieldDefinitionData> targetFields, string targetFolderUri, List<FieldMappingInfo> fieldMapping, List<ResultInfo> results)
         {
             if (targetFields == null || targetFields.Count == 0)
                 return string.Empty;
@@ -1567,15 +1567,13 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
             if (results == null)
                 results = new List<ResultInfo>();
             
-            ItemType itemType = GetItemType(sourceTcmId);
-
             if (string.IsNullOrEmpty(targetRootElementName))
                 targetRootElementName = targetSchema.RootElementName;
 
             if (fieldMapping == null)
                 fieldMapping = GetDefaultFieldMapping(client, targetFields, targetSchema.Id);
 
-            List<ComponentFieldData> fixedValues = GetFixedValues(client, sourceXml, sourceNs, sourceTcmId, targetSchema, targetRootElementName, targetFields, targetFolderUri, fieldMapping, results);
+            List<ComponentFieldData> fixedValues = GetFixedValues(client, sourceXml, sourceNs, sourceItem, targetSchema, targetRootElementName, targetFields, targetFolderUri, fieldMapping, results);
 
             if (fixedValues == null || fixedValues.Count == 0)
                 return string.Format("<{0} xmlns=\"{1}\" />", targetRootElementName, targetSchema.NamespaceUri);
@@ -1595,8 +1593,7 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
 
                         ResultInfo result = new ResultInfo();
                         result.Status = Status.Error;
-                        
-                        result.Item = item;
+                        result.Item = sourceItem;
                         result.Message = string.Format("Item \"{0}\" contains mandatory empty fields. Please change mapping.", result.WebDav.CutPath("/", 90, true));
                         results.Add(result);
                     }
@@ -1622,8 +1619,7 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                     result.ItemType = ItemType.Component;
                     result.TcmId = id;
                     result.Status = Status.Error;
-                    RepositoryLocalObjectData item = ReadItem(client, id) as RepositoryLocalObjectData;
-                    result.Message = string.Format("Item \"{0}\" doesn't exist in target publication", item == null ? id : item.GetWebDav().CutPath("/", 90, true));
+                    result.Message = string.Format("Item \"{0}\" doesn't exist in target publication", result.TcmId);
                     results.Add(result);
 
                     throw new Exception(result.Message);
@@ -1643,10 +1639,10 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
         {
             ResultInfo result = new ResultInfo();
             result.ItemType = ItemType.Component;
+            result.TcmId = folderUri;
 
             if (string.IsNullOrEmpty(title))
             {
-                result.TcmId = folderUri;
                 result.Status = Status.Error;
                 result.Message = "Component title is not defined";
             }
@@ -1675,13 +1671,12 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                     string componentUri = client.CheckIn(component.Id, new ReadOptions()).Id;
                     component = GetComponent(client, componentUri);
 
-                    result.TcmId = component.Id;
+                    result.Item = component.ToItem();
                     result.Status = Status.Success;
                     result.Message = string.Format("Component \"{0}\" was created", component.GetWebDav().CutPath("/", 80, true));
                 }
                 catch (Exception ex)
                 {
-                    result.TcmId = folderUri;
                     result.Status = Status.Error;
                     result.StackTrace = ex.StackTrace;
                     result.Message = string.Format("Error creating component \"{0}\"", title);
@@ -1713,8 +1708,6 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                         }
                     }
 
-                    result.TcmId = componentUri;
-
                     try
                     {
                         component = (ComponentData)client.CheckOut(componentUri, true, new ReadOptions());
@@ -1731,6 +1724,7 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                         client.Update(component, new ReadOptions());
                         client.CheckIn(componentUri, new ReadOptions());
 
+                        result.Item = component.ToItem();
                         result.Status = Status.Success;
                         result.Message = string.Format("Updated component \"{0}\"", component.GetWebDav().CutPath("/", 80, true));
                     }
@@ -1745,7 +1739,6 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                 }
                 else
                 {
-                    result.TcmId = folderUri;
                     result.Status = Status.Error;
                     result.Message = string.Format("Error updating component \"{0}\"", title);
                 }
@@ -1766,6 +1759,7 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
 
             ResultInfo result = new ResultInfo();
             result.ItemType = GetItemType(tridionObjectUri);
+            result.TcmId = tridionObjectUri;
 
             RepositoryLocalObjectData tridionObject = ReadItem(client, tridionObjectUri) as RepositoryLocalObjectData;
 
@@ -1788,8 +1782,6 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                     }
                 }
 
-                result.TcmId = tridionObjectUri;
-
                 try
                 {
                     tridionObject = client.CheckOut(tridionObjectUri, true, new ReadOptions());
@@ -1805,6 +1797,7 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                     client.Update(tridionObject, new ReadOptions());
                     client.CheckIn(tridionObjectUri, new ReadOptions());
 
+                    result.Item = tridionObject.ToItem();
                     result.Status = Status.Success;
                     result.Message = string.Format("Updated item \"{0}\"", tridionObject.GetWebDav().CutPath("/", 80, true));
                 }
@@ -1819,7 +1812,6 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
             }
             else
             {
-                result.TcmId = containerUri;
                 result.Status = Status.Error;
                 result.Message = string.Format("Error updating page \"{0}\"", title);
             }
@@ -1850,10 +1842,10 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
             List<ItemFieldDefinitionData> targetMetadataFields = GetSchemaMetadataFields(client, targetSchemaUri);
 
             // Change schema for component
-            ChangeSchemaForComponent(client, componentUri, sourceSchema, sourceComponentFields, sourceMetadataFields, targetSchema, targetComponentFields, targetMetadataFields, targetFolderUri, localize, historyMapping, results);
+            ChangeSchemaForComponent(client, componentUri, sourceSchema, targetSchema, targetComponentFields, targetMetadataFields, targetFolderUri, localize, historyMapping, results);
         }
 
-        private static void ChangeSchemaForComponent(SessionAwareCoreServiceClient client, string componentUri, SchemaData sourceSchema, List<ItemFieldDefinitionData> sourceComponentFields, List<ItemFieldDefinitionData> sourceMetadataFields, SchemaData targetSchema, List<ItemFieldDefinitionData> targetComponentFields, List<ItemFieldDefinitionData> targetMetadataFields, string targetFolderUri, bool localize, HistoryMappingInfo historyMapping, List<ResultInfo> results)
+        private static void ChangeSchemaForComponent(SessionAwareCoreServiceClient client, string componentUri, SchemaData sourceSchema, SchemaData targetSchema, List<ItemFieldDefinitionData> targetComponentFields, List<ItemFieldDefinitionData> targetMetadataFields, string targetFolderUri, bool localize, HistoryMappingInfo historyMapping, List<ResultInfo> results)
         {
             if (string.IsNullOrEmpty(componentUri))
                 return;
@@ -1881,15 +1873,14 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
             List<FieldMappingInfo> fieldMapping = GetDetectedMapping(historyMapping, component.VersionInfo.RevisionDate);
 
             ResultInfo result = new ResultInfo();
-            result.ItemType = ItemType.Component;
 
             //get fixed xml
-            string newContent = GetFixedContent(client, component.Content, sourceSchema.NamespaceUri, componentUri,
+            string newContent = GetFixedContent(client, component.Content, sourceSchema.NamespaceUri, component.ToItem(),
                 targetSchema, targetSchema.RootElementName, targetComponentFields, targetFolderUri, fieldMapping,
                 results);
 
             //get fixed metadata
-            string newMetadata = GetFixedContent(client, component.Metadata, sourceSchema.NamespaceUri, componentUri,
+            string newMetadata = GetFixedContent(client, component.Metadata, sourceSchema.NamespaceUri, component.ToItem(),
                 targetSchema, "Metadata", targetMetadataFields, targetFolderUri, fieldMapping, results);
 
             if (string.IsNullOrEmpty(newContent) && string.IsNullOrEmpty(newMetadata))
@@ -1907,8 +1898,6 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                     componentUri = GetBluePrintTopLocalizedTcmId(client, componentUri);
                 }
             }
-
-            result.TcmId = componentUri;
 
             component = client.TryCheckOut(componentUri, new ReadOptions()) as ComponentData;
 
@@ -1928,6 +1917,7 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                     client.Save(component, new ReadOptions());
                     client.CheckIn(componentUri, new ReadOptions());
 
+                    result.Item = component.ToItem();
                     result.Status = Status.Success;
                     result.Message = string.Format("Changed schema for \"{0}\"", component.GetWebDav().CutPath("/", 80, true));
                 }
@@ -1960,9 +1950,6 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
             if (sourceSchema == null)
                 return;
 
-            List<ItemFieldDefinitionData> sourceComponentFields = GetSchemaFields(client, sourceSchemaUri);
-            List<ItemFieldDefinitionData> sourceMetadataFields = GetSchemaMetadataFields(client, sourceSchemaUri);
-
             targetSchemaUri = targetSchemaUri.GetCurrentVersionTcmId();
 
             // Open up the target component schema
@@ -1985,7 +1972,7 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
             // Change schema for components
             foreach (ItemInfo item in GetComponents(client, folderUri, sourceSchemaUri))
             {
-                ChangeSchemaForComponent(client, item.TcmId, sourceSchema, sourceComponentFields, sourceMetadataFields, targetSchema, targetComponentFields, targetMetadataFields, targetFolderUri, localize, historyMapping, results);
+                ChangeSchemaForComponent(client, item.TcmId, sourceSchema, targetSchema, targetComponentFields, targetMetadataFields, targetFolderUri, localize, historyMapping, results);
             }
         }
 
@@ -2027,10 +2014,10 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
             List<FieldMappingInfo> fieldMapping = GetDetectedMapping(historyMapping, component.VersionInfo.RevisionDate);
 
             //get fixed xml
-            string newContent = GetFixedContent(client, component.Content, schema.NamespaceUri, componentUri, schema, schema.RootElementName, componentFields, targetFolderUri, fieldMapping, results);
+            string newContent = GetFixedContent(client, component.Content, schema.NamespaceUri, component.ToItem(), schema, schema.RootElementName, componentFields, targetFolderUri, fieldMapping, results);
 
             //get fixed metadata
-            string newMetadata = GetFixedContent(client, component.Metadata, schema.NamespaceUri, componentUri, schema, "Metadata", metadataFields, targetFolderUri, fieldMapping, results);
+            string newMetadata = GetFixedContent(client, component.Metadata, schema.NamespaceUri, component.ToItem(), schema, "Metadata", metadataFields, targetFolderUri, fieldMapping, results);
 
             if (string.IsNullOrEmpty(newContent))
                 return;
@@ -2125,10 +2112,10 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
             }
 
             //get fixed xml
-            string newContent = GetFixedContent(client, component.Content, sourceSchema.NamespaceUri, sourceComponentUri, targetSchema, targetSchema.RootElementName, targetComponentFields, targetFolderUri, fieldMapping, results);
+            string newContent = GetFixedContent(client, component.Content, sourceSchema.NamespaceUri, component.ToItem(), targetSchema, targetSchema.RootElementName, targetComponentFields, targetFolderUri, fieldMapping, results);
 
             //get fixed metadata
-            string newMetadata = GetFixedContent(client, component.Metadata, sourceSchema.NamespaceUri, sourceComponentUri, targetSchema, "Metadata", targetMetadataFields, targetFolderUri, fieldMapping, results);
+            string newMetadata = GetFixedContent(client, component.Metadata, sourceSchema.NamespaceUri, component.ToItem(), targetSchema, "Metadata", targetMetadataFields, targetFolderUri, fieldMapping, results);
 
             if (string.IsNullOrEmpty(newContent))
                 return;
@@ -2272,10 +2259,9 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
             List<FieldMappingInfo> fieldMapping = GetDetectedMapping(historyMapping, tridionObject.VersionInfo.RevisionDate);
 
             ResultInfo result = new ResultInfo();
-            result.ItemType = GetItemType(sourceTridionObjectUri);
 
             //get fixed metadata
-            string newMetadata = GetFixedContent(client, tridionObject.Metadata, sourceMetadataSchema.NamespaceUri, sourceTridionObjectUri, targetMetadataSchema, "Metadata", targetMetadataFields, targetContainerUri, fieldMapping, results);
+            string newMetadata = GetFixedContent(client, tridionObject.Metadata, sourceMetadataSchema.NamespaceUri, tridionObject.ToItem(), targetMetadataSchema, "Metadata", targetMetadataFields, targetContainerUri, fieldMapping, results);
 
             if (string.IsNullOrEmpty(newMetadata))
                 return;
@@ -2293,8 +2279,6 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                 }
             }
 
-            result.TcmId = sourceTridionObjectUri;
-
             tridionObject = client.TryCheckOut(sourceTridionObjectUri, new ReadOptions()) as RepositoryLocalObjectData;
 
             if (tridionObject != null && tridionObject.IsEditable.Value)
@@ -2310,6 +2294,7 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                     client.Save(tridionObject, new ReadOptions());
                     client.CheckIn(sourceTridionObjectUri, new ReadOptions());
 
+                    result.Item = tridionObject.ToItem();
                     result.Status = Status.Success;
                     result.Message = string.Format("Changed metadata schema for \"{0}\"", tridionObject.GetWebDav().CutPath("/", 80, true));
                 }
@@ -2397,7 +2382,7 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
             List<FieldMappingInfo> fieldMapping = GetDetectedMapping(historyMapping, tridionObject.VersionInfo.RevisionDate);
 
             //get fixed metadata
-            string newMetadata = GetFixedContent(client, tridionObject.Metadata, sourceMetadataSchema.NamespaceUri, sourceTridionObjectUri, sourceMetadataSchema, "Metadata", sourceMetadataFields, targetContainerUri, fieldMapping, results);
+            string newMetadata = GetFixedContent(client, tridionObject.Metadata, sourceMetadataSchema.NamespaceUri, tridionObject.ToItem(), sourceMetadataSchema, "Metadata", sourceMetadataFields, targetContainerUri, fieldMapping, results);
 
             if (string.IsNullOrEmpty(newMetadata))
                 return;
@@ -2490,10 +2475,10 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
             }
 
             //get fixed xml
-            string newContent = GetFixedContent(client, tridionObject.Metadata, sourceMetadataSchema.NamespaceUri, sourceTridionObjectUri, targetSchema, targetSchema.RootElementName, targetComponentFields, targetFolderUri, fieldMapping, results);
+            string newContent = GetFixedContent(client, tridionObject.Metadata, sourceMetadataSchema.NamespaceUri, tridionObject.ToItem(), targetSchema, targetSchema.RootElementName, targetComponentFields, targetFolderUri, fieldMapping, results);
 
             //get fixed metadata
-            string newMetadata = GetFixedContent(client, tridionObject.Metadata, sourceMetadataSchema.NamespaceUri, sourceTridionObjectUri, targetSchema, "Metadata", targetMetadataFields, targetFolderUri, fieldMapping, results);
+            string newMetadata = GetFixedContent(client, tridionObject.Metadata, sourceMetadataSchema.NamespaceUri, tridionObject.ToItem(), targetSchema, "Metadata", targetMetadataFields, targetFolderUri, fieldMapping, results);
 
             if (string.IsNullOrEmpty(newContent))
                 return;
@@ -2612,6 +2597,7 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
 
                     client.Save(innerFolder, new ReadOptions());
 
+                    result.Item = innerFolder.ToItem();
                     result.Status = Status.Success;
                     result.Message = string.Format("Changed schema for folder \"{0}\"", innerFolder.GetWebDav().CutPath("/", 80, true));
                 }
@@ -2801,20 +2787,22 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
             result.ItemType = itemType;
             result.TcmId = tcmItem;
 
-            RepositoryLocalObjectData item = ReadItem(client, tcmItem) as RepositoryLocalObjectData;
-            RepositoryLocalObjectData dependentItem = ReadItem(client, tcmDependentItem) as RepositoryLocalObjectData;
+            RepositoryLocalObjectData itemData = ReadItem(client, tcmItem) as RepositoryLocalObjectData;
+            RepositoryLocalObjectData dependentItemData = ReadItem(client, tcmDependentItem) as RepositoryLocalObjectData;
+
+            result.Item = itemData.ToItem();
 
             if (delete)
             {
                 if (status == LinkStatus.Found)
                 {
                     result.Status = Status.Success;
-                    result.Message = string.Format("Item \"{1}\" was removed from \"{0}\".", item == null ? tcmItem : item.GetWebDav().CutPath("/", 90, true), dependentItem == null ? tcmDependentItem : dependentItem.GetWebDav().CutPath("/", 90, true));
+                    result.Message = string.Format("Item \"{1}\" was removed from \"{0}\".", itemData == null ? tcmItem : itemData.GetWebDav().CutPath("/", 90, true), dependentItemData == null ? tcmDependentItem : dependentItemData.GetWebDav().CutPath("/", 90, true));
                 }
                 if (status == LinkStatus.Mandatory)
                 {
                     result.Status = Status.Error;
-                    result.Message = string.Format("Not able to unlink \"{1}\" from \"{0}\".", item == null ? tcmItem : item.GetWebDav().CutPath("/", 90, true), dependentItem == null ? tcmDependentItem : dependentItem.GetWebDav().CutPath("/", 90, true));
+                    result.Message = string.Format("Not able to unlink \"{1}\" from \"{0}\".", itemData == null ? tcmItem : itemData.GetWebDav().CutPath("/", 90, true), dependentItemData == null ? tcmDependentItem : dependentItemData.GetWebDav().CutPath("/", 90, true));
                 }
             }
             else
@@ -2822,12 +2810,12 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                 if (status == LinkStatus.Found)
                 {
                     result.Status = Status.Info;
-                    result.Message = string.Format("Remove item \"{1}\" from \"{0}\".", item == null ? tcmItem : item.GetWebDav().CutPath("/", 90, true), dependentItem == null ? tcmDependentItem : dependentItem.GetWebDav().CutPath("/", 90, true));
+                    result.Message = string.Format("Remove item \"{1}\" from \"{0}\".", itemData == null ? tcmItem : itemData.GetWebDav().CutPath("/", 90, true), dependentItemData == null ? tcmDependentItem : dependentItemData.GetWebDav().CutPath("/", 90, true));
                 }
                 if (status == LinkStatus.Mandatory)
                 {
                     result.Status = Status.Warning;
-                    result.Message = string.Format("Not able to unlink \"{1}\" from \"{0}\".", item == null ? tcmItem : item.GetWebDav().CutPath("/", 90, true), dependentItem == null ? tcmDependentItem : dependentItem.GetWebDav().CutPath("/", 90, true));
+                    result.Message = string.Format("Not able to unlink \"{1}\" from \"{0}\".", itemData == null ? tcmItem : itemData.GetWebDav().CutPath("/", 90, true), dependentItemData == null ? tcmDependentItem : dependentItemData.GetWebDav().CutPath("/", 90, true));
                 }
             }
 
@@ -2835,7 +2823,7 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
             {
                 result.Status = Status.Error;
                 result.StackTrace = stackTraceMessage;
-                result.Message = string.Format("Not able to unlink \"{1}\" from \"{0}\".", item == null ? tcmItem : item.GetWebDav().CutPath("/", 90, true), dependentItem == null ? tcmDependentItem : dependentItem.GetWebDav().CutPath("/", 90, true));
+                result.Message = string.Format("Not able to unlink \"{1}\" from \"{0}\".", itemData == null ? tcmItem : itemData.GetWebDav().CutPath("/", 90, true), dependentItemData == null ? tcmDependentItem : dependentItemData.GetWebDav().CutPath("/", 90, true));
             }
 
             if(status != LinkStatus.NotFound)
@@ -3454,15 +3442,14 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
             
             ItemType itemType = GetItemType(tcmItem);
 
-            RepositoryLocalObjectData item = (RepositoryLocalObjectData)ReadItem(client, tcmItem);
+            RepositoryLocalObjectData itemData = (RepositoryLocalObjectData)ReadItem(client, tcmItem);
 
             if (level > 3)
             {
                 results.Add(new ResultInfo
                 {
-                    Message = string.Format("Recoursion level is bigger than 3. Try to select different item than \"{0}\"", item.GetWebDav().CutPath("/", 90, true)),
-                    TcmId = tcmItem,
-                    ItemType = itemType,
+                    Message = string.Format("Recoursion level is bigger than 3. Try to select different item than \"{0}\"", itemData.GetWebDav().CutPath("/", 90, true)),
+                    Item = itemData.ToItem(),
                     Status = Status.Error
                 });
 
@@ -3495,7 +3482,7 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
             {
                 try
                 {
-                    FolderData folder = item as FolderData;
+                    FolderData folder = itemData as FolderData;
                     if (folder != null && folder.LinkedSchema != null && folder.LinkedSchema.IdRef != "tcm:0-0-0")
                     {
                         if (delete)
@@ -3505,9 +3492,8 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                         {
                             results.Add(new ResultInfo
                             {
-                                Message = string.Format("Removed folder linked schema for \"{0}\"", item.GetWebDav().CutPath("/", 80, true)),
-                                TcmId = tcmItem,
-                                ItemType = itemType,
+                                Message = string.Format("Removed folder linked schema for \"{0}\"", itemData.GetWebDav().CutPath("/", 80, true)),
+                                Item = itemData.ToItem(),
                                 Status = Status.Success
                             });
                         }
@@ -3516,9 +3502,8 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                         {
                             results.Add(new ResultInfo
                             {
-                                Message = string.Format("Remove folder linked schema for \"{0}\"", item.GetWebDav().CutPath("/", 80, true)),
-                                TcmId = tcmItem,
-                                ItemType = itemType,
+                                Message = string.Format("Remove folder linked schema for \"{0}\"", itemData.GetWebDav().CutPath("/", 80, true)),
+                                Item = itemData.ToItem(),
                                 Status = Status.Info
                             });
                         }
@@ -3528,9 +3513,8 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                 {
                     results.Add(new ResultInfo
                     {
-                        Message = string.Format("Error removing folder linked schema for \"{0}\"", item.GetWebDav().CutPath("/", 80, true)),
-                        TcmId = tcmItem,
-                        ItemType = itemType,
+                        Message = string.Format("Error removing folder linked schema for \"{0}\"", itemData.GetWebDav().CutPath("/", 80, true)),
+                        Item = itemData.ToItem(),
                         Status = Status.Error,
                         StackTrace = ex.StackTrace
                     });
@@ -3542,7 +3526,7 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
             {
                 try
                 {
-                    if (item != null && item.MetadataSchema != null && item.MetadataSchema.IdRef != "tcm:0-0-0")
+                    if (itemData != null && itemData.MetadataSchema != null && itemData.MetadataSchema.IdRef != "tcm:0-0-0")
                     {
                         if (delete)
                             RemoveMetadataSchema(client, tcmItem);
@@ -3551,9 +3535,8 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                         {
                             results.Add(new ResultInfo
                             {
-                                Message = string.Format("Removed metadata schema for \"{0}\"", item.GetWebDav().CutPath("/", 80, true)),
-                                TcmId = tcmItem,
-                                ItemType = itemType,
+                                Message = string.Format("Removed metadata schema for \"{0}\"", itemData.GetWebDav().CutPath("/", 80, true)),
+                                Item = itemData.ToItem(),
                                 Status = Status.Success
                             });
                         }
@@ -3562,9 +3545,8 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                         {
                             results.Add(new ResultInfo
                             {
-                                Message = string.Format("Remove metadata schema for \"{0}\"", item.GetWebDav().CutPath("/", 80, true)),
-                                TcmId = tcmItem,
-                                ItemType = itemType,
+                                Message = string.Format("Remove metadata schema for \"{0}\"", itemData.GetWebDav().CutPath("/", 80, true)),
+                                Item = itemData.ToItem(),
                                 Status = Status.Info
                             });
                         }
@@ -3574,9 +3556,8 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                 {
                     results.Add(new ResultInfo
                     {
-                        Message = string.Format("Error removing metadata schema for \"{0}\"", item.GetWebDav().CutPath("/", 80, true)),
-                        TcmId = tcmItem,
-                        ItemType = itemType,
+                        Message = string.Format("Error removing metadata schema for \"{0}\"", itemData.GetWebDav().CutPath("/", 80, true)),
+                        Item = itemData.ToItem(),
                         Status = Status.Error,
                         StackTrace = ex.StackTrace
                     });
@@ -3596,9 +3577,8 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                         {
                             results.Add(new ResultInfo
                             {
-                                Message = string.Format("Error removing history from item \"{0}\"", item.GetWebDav().CutPath("/", 90, true)),
-                                TcmId = tcmItem,
-                                ItemType = itemType,
+                                Message = string.Format("Error removing history from item \"{0}\"", itemData.GetWebDav().CutPath("/", 90, true)),
+                                Item = itemData.ToItem(),
                                 Status = Status.Error,
                                 StackTrace = stackTraceMessage
                             });
@@ -3630,9 +3610,8 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                 {
                     results.Add(new ResultInfo
                     {
-                        Message = string.Format("Deleted item \"{0}\"", item.GetWebDav().CutPath("/", 90, true)),
-                        TcmId = tcmItem,
-                        ItemType = itemType,
+                        Message = string.Format("Deleted item \"{0}\"", itemData.GetWebDav().CutPath("/", 90, true)),
+                        Item = itemData.ToItem(),
                         Status = Status.Success
                     });
                 }
@@ -3642,9 +3621,8 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                     {
                         results.Add(new ResultInfo
                         {
-                            Message = string.Format("Unlocalize item \"{0}\"", item.GetWebDav().CutPath("/", 90, true)),
-                            TcmId = tcmItem,
-                            ItemType = itemType,
+                            Message = string.Format("Unlocalize item \"{0}\"", itemData.GetWebDav().CutPath("/", 90, true)),
+                            Item = itemData.ToItem(),
                             Status = Status.Info
                         });
                     }
@@ -3653,9 +3631,8 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                     {
                         results.Add(new ResultInfo
                         {
-                            Message = string.Format("Unpublish manually item \"{0}\" published at {1}", item.GetWebDav().CutPath("/", 80, true), GetPublishInfo(client, tcmItem)),
-                            TcmId = GetFirstPublishItemTcmId(client, tcmItem),
-                            ItemType = itemType,
+                            Message = string.Format("Unpublish manually item \"{0}\" published at {1}", itemData.GetWebDav().CutPath("/", 80, true), GetPublishInfo(client, tcmItem)),
+                            Item = itemData.ToItem(),
                             Status = Status.Warning
                         });
                     }
@@ -3664,11 +3641,8 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                     {
                         results.Add(new ResultInfo
                         {
-                            Message =
-                                string.Format("Remove old versions of item \"{0}\"",
-                                    item.GetWebDav().CutPath("/", 80, true)),
-                            TcmId = tcmItem,
-                            ItemType = itemType,
+                            Message = string.Format("Remove old versions of item \"{0}\"", itemData.GetWebDav().CutPath("/", 80, true)),
+                            Item = itemData.ToItem(),
                             Status = Status.Info
                         });
                     }
@@ -3676,9 +3650,8 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                     {
                         results.Add(new ResultInfo
                         {
-                            Message = string.Format("Delete item \"{0}\"", item.GetWebDav().CutPath("/", 90, true)),
-                            TcmId = tcmItem,
-                            ItemType = itemType,
+                            Message = string.Format("Delete item \"{0}\"", itemData.GetWebDav().CutPath("/", 90, true)),
+                            Item = itemData.ToItem(),
                             Status = Status.Info
                         });
                     }
@@ -3688,9 +3661,8 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
             {
                 results.Add(new ResultInfo
                 {
-                    Message = string.Format("Error deleting item \"{0}\"", item.GetWebDav().CutPath("/", 90, true)),
-                    TcmId = tcmItem,
-                    ItemType = itemType,
+                    Message = string.Format("Error deleting item \"{0}\"", itemData.GetWebDav().CutPath("/", 90, true)),
+                    Item = itemData.ToItem(),
                     Status = Status.Error,
                     StackTrace = ex.StackTrace
                 });
@@ -3960,8 +3932,7 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                     results.Add(new ResultInfo
                     {
                         Message = string.Format("Unlocalized item \"{0}\"", itemData.GetWebDav().CutPath("/", 90, true)),
-                        TcmId = item.TcmId,
-                        ItemType = item.ItemType,
+                        Item = itemData.ToItem(),
                         Status = Status.Success
                     });
                 }
@@ -3970,8 +3941,7 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                     results.Add(new ResultInfo
                     {
                         Message = string.Format("Error unlocalizing item \"{0}\"", itemData.GetWebDav().CutPath("/", 80, true)),
-                        TcmId = item.TcmId,
-                        ItemType = item.ItemType,
+                        Item = itemData.ToItem(),
                         Status = Status.Error,
                         StackTrace = ex.StackTrace
                     });
@@ -3982,8 +3952,7 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                 results.Add(new ResultInfo
                 {
                     Message = string.Format("Unlocalize item \"{0}\"", itemData.GetWebDav().CutPath("/", 90, true)),
-                    TcmId = item.TcmId,
-                    ItemType = item.ItemType,
+                    Item = itemData.ToItem(),
                     Status = Status.Info
                 });
             }
@@ -4208,11 +4177,72 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
             return res;
         }
 
+        public static ItemInfo ToItem(this RepositoryLocalObjectData dataItem)
+        {
+            ItemInfo item = new ItemInfo();
+            item.TcmId = dataItem.Id;
+            item.ItemType = GetItemType(dataItem.Id);
+            item.Title = dataItem.Title;
+
+            //todo: find the logic to get icon name from item type
+            //item.Icon
+
+            item.Path = Path.GetDirectoryName(dataItem.GetWebDav().Replace('/', '\\'));
+
+            if (item.ItemType == ItemType.Schema)
+            {
+                SchemaData schemaDataItem = (SchemaData) dataItem;
+                if (schemaDataItem.Purpose == SchemaPurpose.Bundle)
+                {
+                    item.SchemaType = SchemaType.Bundle;
+                }
+                else if (schemaDataItem.Purpose == SchemaPurpose.TemplateParameters)
+                {
+                    item.SchemaType = SchemaType.Parameters;
+                }
+                else if (schemaDataItem.Purpose == SchemaPurpose.Metadata)
+                {
+                    item.SchemaType = SchemaType.Metadata;
+                }
+                else if (schemaDataItem.Purpose == SchemaPurpose.Embedded)
+                {
+                    item.SchemaType = SchemaType.Embedded;
+                }
+                else if (schemaDataItem.Purpose == SchemaPurpose.Multimedia)
+                {
+                    item.SchemaType = SchemaType.Multimedia;
+                }
+                else if (schemaDataItem.Purpose == SchemaPurpose.Component)
+                {
+                    item.SchemaType = SchemaType.Component;
+                }
+                else
+                {
+                    item.SchemaType = SchemaType.None;
+                }
+            }
+
+            //todo find mime type
+            //if (item.ItemType == ItemType.Component)
+            //{
+            //    ComponentData componentDataItem = (ComponentData) dataItem;
+
+            //    item.MimeType = componentDataItem.
+            //}
+
+            item.FromPub = dataItem.BluePrintInfo.OwningRepository.Title;
+
+            if (dataItem.IsPublishedInContext != null)
+                item.IsPublished = dataItem.IsPublishedInContext.Value;
+
+            return item;
+        }
+
         public static ItemType GetItemType(string tcmItem)
         {
             if (string.IsNullOrEmpty(tcmItem))
                 return ItemType.None;
-            
+
             string[] arr = tcmItem.Replace("tcm:", string.Empty).Split('-');
             if (arr.Length == 2) return ItemType.Component;
 
