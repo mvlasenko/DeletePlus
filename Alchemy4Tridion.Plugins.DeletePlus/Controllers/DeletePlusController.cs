@@ -1,6 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Web.Http;
 using System.Xml.Linq;
+using Alchemy4Tridion.Plugins.DeletePlus.Helpers;
+using Alchemy4Tridion.Plugins.DeletePlus.Models;
 using Tridion.ContentManager.CoreService.Client;
 
 namespace Alchemy4Tridion.Plugins.DeletePlus.Controllers
@@ -27,29 +30,17 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Controllers
         {
             try
             {
-
                 // Start building up a string of html to return, including headings for the table that the html will represent.
                 string html = "<div class=\"usingItems results\">";
                 html += CreateItemsHeading();
 
-                var filterData = new OrganizationalItemItemsFilterData();
-                filterData.ItemTypes = new[]{ItemType.Schema,
-                                             ItemType.Component,
-                                             ItemType.TemplateBuildingBlock,
-                                             ItemType.ComponentTemplate,
-                                             ItemType.PageTemplate};
-                // When using OrganizationalItemItemsFilterData, we need to explicitly set a flag to include paths in resultXml.
-                filterData.IncludePathColumn = true;
-                filterData.Recursive = true;
-
-                // Use the filter to get the list of ALL items contained in the folder represented by tcmItem.
-                // We have to add "tcm:" here because we can't pass a full tcm id (with colon) via a URL.
-                XElement resultXml = this.Client.GetListXml("tcm:" + tcmItem, filterData);
+                List<ResultInfo> results  = new List<ResultInfo>();
+                MainHelper.Delete(this.Client, "tcm:" + tcmItem, false, string.Empty, results);
 
                 // Iterate over all items returned by the above filtered list returned.
-                foreach (XElement currentItem in resultXml.Nodes())
+                foreach (ResultInfo result in results)
                 {
-                    html += CreateItem(currentItem) + Environment.NewLine;
+                    html += CreateItem(result) + Environment.NewLine;
                 }
 
                 // Close the div we opened above
@@ -140,13 +131,13 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Controllers
             return html;
         }
 
-        private string CreateItem(XElement item)
+        private string CreateItem(ResultInfo result)
         {
             string html = "<div class=\"item\">";
-            html += "<div class=\"icon\" style=\"background-image: url(/WebUI/Editors/CME/Themes/Carbon2/icon_v7.1.0.66.627_.png?name=" + item.Attribute("Icon").Value + "&size=16)\"></div>";
-            html += "<div class=\"name\">" + item.Attribute("Title").Value + "</div>";
-            html += "<div class=\"path\">" + item.Attribute("Path").Value + "</div>";
-            html += "<div class=\"id\">" + item.Attribute("ID").Value + "</div>";
+            html += "<div class=\"icon\" style=\"background-image: url(/WebUI/Editors/CME/Themes/Carbon2/icon_v7.1.0.66.627_.png?name=" + result.Icon + "&size=16)\"></div>";
+            html += "<div class=\"name\">" + result.Title + "</div>";
+            html += "<div class=\"path\">" + result.Path + "</div>";
+            html += "<div class=\"id\">" + result.TcmId + "</div>";
             html += "</div>";
             return html;
         }
