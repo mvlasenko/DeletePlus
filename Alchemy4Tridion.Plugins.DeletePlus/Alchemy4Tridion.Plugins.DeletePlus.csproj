@@ -99,7 +99,11 @@
     <Content Include="Static\Images\delete-plus.24x24.png" />
     <Content Include="Static\Images\delete-plus.32x32.png" />
     <Content Include="Static\Images\delete-plus.48x48.png" />
+    <Content Include="Static\Images\error.png" />
     <Content Include="Static\Images\favicon.png" />
+    <Content Include="Static\Images\info.png" />
+    <Content Include="Static\Images\success.png" />
+    <Content Include="Static\Images\warning.png" />
     <Content Include="Static\Scripts\DeletePlusCommand.js" />
     <Content Include="Static\Scripts\DeletePlusPopup.js" />
     <Content Include="Static\Styles\DeletePlusPopup.css" />

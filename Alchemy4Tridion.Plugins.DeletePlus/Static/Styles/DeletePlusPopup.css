@@ -110,12 +110,13 @@
     padding-left:21px;
 }
 .path {
-    width:55%;
+    width:60%;
     padding-left: 2px;
 }
 .id{
-    width:15%;
+    width:10%;
     padding-left:2px;
+    text-align: center;
 }
 .controls{
     padding-left: 20px;

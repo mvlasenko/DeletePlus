@@ -33,7 +33,7 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Controllers
                 html += CreateItemsHeading();
 
                 List<ResultInfo> results  = new List<ResultInfo>();
-                MainHelper.Delete(this.Client, "tcm:" + tcmItem, false, string.Empty, results);
+                MainHelper.Delete(this.Client, "tcm:" + tcmItem, false, results);
 
                 // Iterate over all items returned by the above filtered list returned.
                 foreach (ResultInfo result in results)
@@ -76,7 +76,7 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Controllers
                 html += CreateItemsHeading();
 
                 List<ResultInfo> results = new List<ResultInfo>();
-                MainHelper.Delete(this.Client, "tcm:" + tcmItem, true, string.Empty, results);
+                MainHelper.Delete(this.Client, "tcm:" + tcmItem, true, results);
 
                 // Iterate over all items returned by the above filtered list returned.
                 foreach (ResultInfo result in results)
@@ -113,7 +113,8 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Controllers
             html += "<div class=\"icon\">&nbsp</div>";
             html += "<div class=\"name\">Name</div>";
             html += "<div class=\"path\">Path</div>";
-            html += "<div class=\"id\">ID</div></div>";
+            html += "<div class=\"id\">Operation</div>";
+            html += "</div>";
 
             return html;
         }
@@ -124,7 +125,7 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Controllers
             html += "<div class=\"icon\" style=\"background-image: url(/WebUI/Editors/CME/Themes/Carbon2/icon_v7.1.0.66.627_.png?name=" + result.Icon + "&size=16)\"></div>";
             html += "<div class=\"name\">" + result.Title + "</div>";
             html += "<div class=\"path\">" + result.Path + "</div>";
-            html += "<div class=\"id\">" + result.TcmId + "</div>";
+            html += "<div class=\"id\"><img src=\"/Alchemy/Plugins/Delete_Plus/assets/img/" + result.StatusIcon + "\" title=\"" + result.Message.Replace("\"", "'") + "\"/></div>";
             html += "</div>";
             return html;
         }

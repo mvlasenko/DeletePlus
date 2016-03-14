@@ -23,6 +23,10 @@
 		<div class="controls">
             <div class="button disabled" id="delete_item"><span class="text">Delete</span></div>
             <div class="button disabled" id="refresh_items"><span class="text">Refresh</span></div>
+            
+            <!-- todo: add handler -->
+            <div class="button" id="close_window"><span class="text">Close</span></div>
+
 		</div>
     </body>
 </html>

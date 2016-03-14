@@ -5,9 +5,6 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Models
 {
     public class ResultInfo
     {
-        private string _TcmId;
-        private ItemType _ItemType;
-
         public ItemInfo Item { get; set; }
 
         public string Message { get; set; }
@@ -21,12 +18,8 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Models
             get
             {
                 if (this.Item == null)
-                    return this._TcmId;
+                    return string.Empty;
                 return this.Item.TcmId;
-            }
-            set
-            {
-                this._TcmId = value;
             }
         }
 
@@ -35,12 +28,8 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Models
             get
             {
                 if (this.Item == null)
-                    return this._ItemType;
+                    return ItemType.None;
                 return this.Item.ItemType;
-            }
-            set
-            {
-                this._ItemType = value;
             }
         }
 
@@ -61,6 +50,21 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Models
                 if (this.Item == null)
                     return string.Empty;
                 return this.Item.Icon;
+            }
+        }
+
+        public string StatusIcon
+        {
+            get
+            {
+                if (this.Status == Status.Success)
+                    return "success.png";
+                if (this.Status == Status.Warning)
+                    return "warning.png";
+                if (this.Status == Status.Error)
+                    return "error.png";
+
+                return "info.png";
             }
         }
 
