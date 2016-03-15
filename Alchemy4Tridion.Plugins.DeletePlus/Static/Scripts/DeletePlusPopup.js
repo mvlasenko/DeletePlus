@@ -26,6 +26,9 @@
         $j("#refresh_items").removeClass("enabled");
         $j("#refresh_items").addClass("disabled");
 
+        $j("#close_window").removeClass("disabled");
+        $j("#close_window").addClass("enabled");
+
         //enable progress bar
         $j("#progBar").show();
 
@@ -56,6 +59,10 @@
                 loadItemsToDelete(tcm);
             });
 
+            $j("#close_window.enabled").click(function () {
+                closeWindow();
+            });
+
         })
         .error(function (type, error) {
             // First arg is a string that shows the type of error i.e. (500 Internal), 2nd arg is object representing
@@ -76,6 +83,9 @@
         $j("#refresh_items").removeClass("enabled");
         $j("#refresh_items").addClass("disabled");
 
+        $j("#close_window").removeClass("enabled");
+        $j("#close_window").addClass("disabled");
+
         //enable progress bar
         $j("#progBar").show();
 
@@ -88,6 +98,17 @@
             $j(".tab-body.active").empty();
             $j(".tab-body.active").append(items);
 
+            //change buttons visibility
+
+            $j("#close_window").removeClass("disabled");
+            $j("#close_window").addClass("enabled");
+
+            //register button handlers
+
+            $j("#close_window.enabled").click(function () {
+                closeWindow();
+            });
+
         })
         .error(function (type, error) {
             // First arg is a string that shows the type of error i.e. (500 Internal), 2nd arg is object representing
@@ -97,6 +118,11 @@
         .complete(function () {
             // this is called regardless of success or failure.
         });
+    }
+
+    function closeWindow() {
+        //todo: refresh parent window items
+        window.close();
     }
 
 })();

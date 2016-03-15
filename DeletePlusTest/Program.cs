@@ -14,14 +14,14 @@ namespace DeletePlusTest
         static void Main(string[] args)
         {
             SessionAwareCoreServiceClient client = GetTcpClient("localhost", "admin", "123", "2013");
-            string tcmItem = "tcm:0-5060-1";
+            string tcmItem = "tcm:5061-14480-512";
 
             //var list = MainHelper.GetItemsByParentContainer(client, "tcm:5061-11404-2");
 
             //var list = MainHelper.GetPublications(client);
 
             List<ResultInfo> results = new List<ResultInfo>();
-            MainHelper.Delete(client, tcmItem, false, results);
+            MainHelper.Delete(client, tcmItem, true, results);
         }
 
         public static SessionAwareCoreServiceClient GetTcpClient(string host, string username, string password, string clientVersion)

@@ -17,7 +17,15 @@ Alchemy.command("${PluginName}", "DeletePlus", {
      * Whether or not the command is enabled for the user (will usually have extensions displayed but disabled).
      * @returns {boolean}
      */
-    isEnabled: function () {
+    isEnabled: function (selection) {
+
+        if (selection.getCount() == 0)
+            return false;
+
+        //not enabled for publication
+        if (selection.getItem(0).indexOf("tcm:0-") > -1)
+            return false;
+
         return true;
     },
 
@@ -25,7 +33,7 @@ Alchemy.command("${PluginName}", "DeletePlus", {
      * Whether or not the command is available to the user.
      * @returns {boolean}
      */
-    isAvailable: function () {
+    isAvailable: function (selection) {
         return true;
     },
 

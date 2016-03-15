@@ -60,7 +60,9 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Controllers
                 }
 
                 // We are rethrowing the original exception and just letting webapi handle it.
-                throw ex;
+                //throw ex;
+
+                return ErrorMessage();
             }
         }
 
@@ -103,7 +105,9 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Controllers
                 }
 
                 // We are rethrowing the original exception and just letting webapi handle it.
-                throw ex;
+                //throw ex;
+
+                return ErrorMessage();
             }
         }
 
@@ -127,6 +131,13 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Controllers
             html += "<div class=\"path\">" + result.Path + "</div>";
             html += "<div class=\"id\"><img src=\"/Alchemy/Plugins/Delete_Plus/assets/img/" + result.StatusIcon + "\" title=\"" + result.Message.Replace("\"", "'") + "\"/></div>";
             html += "</div>";
+            return html;
+        }
+
+        private string ErrorMessage()
+        {
+            string html = "<h1>Error</h1>";
+            html += "<p>Look event log for details</p>";
             return html;
         }
 
