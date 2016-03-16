@@ -390,6 +390,21 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
 
         private static LinkStatus RemoveDependency(SessionAwareCoreServiceClient client, string tcmItem, string tcmDependentItem, bool delete, List<ResultInfo> results)
         {
+            if (results.Any(x => x.Status == Status.Error))
+                return LinkStatus.Error;
+
+            if (results.Count > 50)
+            {
+                results.Insert(0, new ResultInfo
+                {
+                    Message = "Delete stack exceeds 50 items. Please select other item",
+                    Item = new ItemInfo { Title = "Delete stack exceeds 50 items" },
+                    Status = Status.Error
+                });
+
+                return LinkStatus.Error;
+            }
+
             ResultInfo result = new ResultInfo();
 
             ItemType itemType = GetItemType(tcmItem);
@@ -445,6 +460,11 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                 {
                     status = RemoveTbbFromComponentTemplate(client, tcmItem, tcmDependentItem, out stackTraceMessage);
                 }
+                //change schema keyword field to text field
+                else if (itemType == ItemType.Schema && dependentItemType == ItemType.Category)
+                {
+                    status = RemoveKeywordField(client, tcmItem, tcmDependentItem, out stackTraceMessage);
+                }
                 //remove component or keyword link from component
                 else if (itemType == ItemType.Component && (dependentItemType == ItemType.Component || dependentItemType == ItemType.Keyword))
                 {
@@ -470,11 +490,6 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                     }
 
                     status = RemoveLinkFromMetadata(client, tcmItem, tcmDependentItem, out stackTraceMessage);
-                }
-                //chenge schema keyword field to text field
-                else if (itemType == ItemType.Schema && dependentItemType == ItemType.Category)
-                {
-                    status = RemoveKeywordField(client, tcmItem, tcmDependentItem, out stackTraceMessage);
                 }
 
                 if (status == LinkStatus.Found && itemData is VersionedItemData)
@@ -515,6 +530,11 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                 {
                     status = CheckRemoveTbbFromComponentTemplate(client, tcmItem, tcmDependentItem);
                 }
+                //change schema keyword field to text field
+                else if (itemType == ItemType.Schema && dependentItemType == ItemType.Category)
+                {
+                    status = CheckRemoveKeywordField(client, tcmItem, tcmDependentItem);
+                }
                 //check if possible to remove component or keyword link from component
                 else if (itemType == ItemType.Component && (dependentItemType == ItemType.Component || dependentItemType == ItemType.Keyword))
                 {
@@ -526,7 +546,7 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                         CheckRemoveSchemaMandatoryLinkFields(client, itemData, tcmDependentItem, results);
                     }
 
-                    status = LinkStatus.Found;
+                    status = CheckRemoveLinkFromComponent(client, tcmItem, tcmDependentItem);
                 }
                 //check if possible to remove component or keyword link from metadata
                 else if (dependentItemType == ItemType.Component || dependentItemType == ItemType.Keyword)
@@ -539,12 +559,7 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                         CheckRemoveSchemaMandatoryLinkFields(client, itemData, tcmDependentItem, results);
                     }
 
-                    status = LinkStatus.Found;
-                }
-                //chenge schema keyword field to text field
-                else if (itemType == ItemType.Schema && dependentItemType == ItemType.Category)
-                {
-                    status = CheckRemoveKeywordField(client, tcmItem, tcmDependentItem);
+                    status = CheckRemoveLinkFromMetadata(client, tcmItem, tcmDependentItem);
                 }
 
                 if (status == LinkStatus.Found)
@@ -613,6 +628,15 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
             if (itemData is VersionedItemData)
             {
                 VersionedItemData versionedItemData = (VersionedItemData) itemData;
+
+                if (versionedItemData.BluePrintInfo.IsShared == true)
+                {
+                    itemUri = GetBluePrintTopTcmId(client, itemUri);
+
+                    versionedItemData = ReadItem(client, itemUri) as VersionedItemData;
+                    if (versionedItemData == null)
+                        return LinkStatus.NotFound;
+                }
 
                 try
                 {
@@ -1362,7 +1386,7 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                 {
                     results.Add(new ResultInfo
                     {
-                        Message = string.Format("Error removing folder linked schema for \"{0}\"", itemData.GetWebDav()),
+                        Message = string.Format("Error removing folder linked schema for \"{0}\". Error message \"{1}\"", itemData.GetWebDav(), ex.Message),
                         Item = itemData.ToItem(),
                         Status = Status.Error,
                         StackTrace = ex.StackTrace
@@ -1418,6 +1442,15 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
             SchemaData schema = ReadItem(client, schemaUri) as SchemaData;
             if (schema == null)
                 return LinkStatus.NotFound;
+
+            if (schema.BluePrintInfo.IsShared == true)
+            {
+                schemaUri = GetBluePrintTopTcmId(client, schemaUri);
+
+                schema = ReadItem(client, schemaUri) as SchemaData;
+                if (schema == null)
+                    return LinkStatus.NotFound;
+            }
 
             SchemaFieldsData schemaFieldsData = client.ReadSchemaFields(schemaUri, false, null);
 
@@ -1548,7 +1581,23 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
             if (tcmItem.StartsWith("tcm:0-"))
                 return;
 
-            tcmItem = GetBluePrintTopTcmId(client, tcmItem);
+            if (results.Any(x => x.Status == Status.Error))
+                return;
+
+            if (results.Count > 50)
+            {
+                results.Insert(0, new ResultInfo
+                {
+                    Message = "Delete stack exceeds 50 items. Please select other item",
+                    Item = new ItemInfo { Title = "Delete stack exceeds 50 items" },
+                    Status = Status.Error
+                });
+
+                return;
+            }
+
+            if (!ExistsItem(client, tcmItem))
+                return;
 
             RepositoryLocalObjectData itemData = (RepositoryLocalObjectData)ReadItem(client, tcmItem);
 
@@ -1562,6 +1611,15 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                 });
 
                 return;
+            }
+
+            if (itemData.BluePrintInfo.IsShared == true)
+            {
+                tcmItem = GetBluePrintTopTcmId(client, tcmItem);
+
+                itemData = ReadItem(client, tcmItem) as RepositoryLocalObjectData;
+                if (itemData == null)
+                    return;
             }
 
             bool isAnyLocalized = IsAnyLocalized(client, tcmItem);
@@ -1627,7 +1685,7 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                     {
                         results.Add(new ResultInfo
                         {
-                            Message = string.Format("Error unlocalizing item \"{0}\"", itemData.GetWebDav()),
+                            Message = string.Format("Error unlocalizing item \"{0}\". Error message \"{1}\"", itemData.GetWebDav(), ex.Message),
                             Item = itemData.ToItem(),
                             Status = Status.Error,
                             StackTrace = ex.StackTrace
@@ -1688,7 +1746,7 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                     {
                         results.Add(new ResultInfo
                         {
-                            Message = string.Format("Error deleteing item \"{0}\"", itemData.GetWebDav()),
+                            Message = string.Format("Error deleting item \"{0}\". Error message \"{1}\"", itemData.GetWebDav(), ex.Message),
                             Item = itemData.ToItem(),
                             Status = Status.Error,
                             StackTrace = ex.StackTrace
@@ -1745,6 +1803,21 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
 
         public static void DeleteFolderOrStructureGroup(SessionAwareCoreServiceClient client, string tcmFolder, bool delete, List<ResultInfo> results, int level = 0)
         {
+            if (results.Any(x => x.Status == Status.Error))
+                return;
+
+            if (results.Count > 50)
+            {
+                results.Insert(0, new ResultInfo
+                {
+                    Message = "Delete stack exceeds 50 items. Please select other item",
+                    Item = new ItemInfo { Title = "Delete stack exceeds 50 items" },
+                    Status = Status.Error
+                });
+
+                return;
+            }
+
             if (level > 3)
             {
                 RepositoryLocalObjectData itemData = (RepositoryLocalObjectData)ReadItem(client, tcmFolder);
@@ -1759,8 +1832,6 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                 return;
             }
 
-            List<ResultInfo> folderResults = new List<ResultInfo>();
-
             List<BluePrintNodeData> bluePrintItems = GetBluePrintItems(client, tcmFolder);
             bluePrintItems.Reverse();
 
@@ -1773,24 +1844,52 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                 {
                     if (childItem.ItemType == ItemType.Folder || childItem.ItemType == ItemType.StructureGroup)
                     {
-                        DeleteFolderOrStructureGroup(client, childItem.TcmId, delete, folderResults, level + 1);
+                        DeleteFolderOrStructureGroup(client, childItem.TcmId, delete, results, level + 1);
                     }
                     else
                     {
                         if (ExistsItem(client, childItem.TcmId))
-                            DeleteTridionObject(client, childItem.TcmId, delete, folderResults, tcmFolder, true, level);
+                            DeleteTridionObject(client, childItem.TcmId, delete, results, tcmFolder, true, level);
                     }
+
+                    if (results.Any(x => x.Status == Status.Error))
+                        return;
                 }
             }
-
-            results.AddRange(folderResults.Distinct(new ResultInfoComparer()));
 
             DeleteTridionObject(client, tcmFolder, delete, results, string.Empty, true, level);
         }
 
         public static void DeletePublication(SessionAwareCoreServiceClient client, string tcmPublication, bool delete, List<ResultInfo> results, int level = 0)
         {
+            if (results.Any(x => x.Status == Status.Error))
+                return;
+
+            if (results.Count > 50)
+            {
+                results.Insert(0, new ResultInfo
+                {
+                    Message = "Delete stack exceeds 50 items. Please select other item",
+                    Item = new ItemInfo { Title = "Delete stack exceeds 50 items" },
+                    Status = Status.Error
+                });
+
+                return;
+            }
+
             PublicationData publication = (PublicationData)ReadItem(client, tcmPublication);
+
+            if (level > 3)
+            {
+                results.Add(new ResultInfo
+                {
+                    Message = string.Format("Recoursion level is bigger than 3. Try delete publication  manually \"{0}\"", publication.Title),
+                    Item = publication.ToItem(),
+                    Status = Status.Error
+                });
+
+                return;
+            }
 
             //delete dependent publications
             List<string> usingItems = GetUsingItems(client, tcmPublication);
@@ -1807,16 +1906,12 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                 }
             }
 
-            List<ResultInfo> publicationResults = new List<ResultInfo>();
-
             //delete / inform published items
             List<ItemInfo> pulishedItems = GetItemsByPublication(client, tcmPublication, true).Where(x => x.IsPublished).ToList();
             foreach (ItemInfo publishedItem in pulishedItems)
             {
-                DeleteTridionObject(client, publishedItem.TcmId, delete, publicationResults, string.Empty, true, level);
+                DeleteTridionObject(client, publishedItem.TcmId, delete, results, string.Empty, true, level);
             }
-
-            results.AddRange(publicationResults.Distinct(new ResultInfoComparer()));
 
             try
             {
@@ -1846,7 +1941,7 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
             {
                 results.Add(new ResultInfo
                 {
-                    Message = string.Format("Error deleting publication \"{0}\"", publication.Title),
+                    Message = string.Format("Error deleting publication \"{0}\". Error message \"{1}\"", publication.Title, ex.Message),
                     Item = publication.ToItem(),
                     Status = Status.Error,
                     StackTrace = ex.StackTrace
@@ -1934,19 +2029,6 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
         #endregion
 
         #region Collection helpers
-
-        private class ResultInfoComparer : IEqualityComparer<ResultInfo>
-        {
-            public bool Equals(ResultInfo x, ResultInfo y)
-            {
-                return x.TcmId == y.TcmId && x.Status == y.Status;
-            }
-
-            public int GetHashCode(ResultInfo obj)
-            {
-                return obj.TcmId.GetHashCode();
-            }
-        }
 
         public static List<ItemInfo> ToList(this XElement xml, ItemType itemType)
         {
