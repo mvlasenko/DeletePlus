@@ -41,19 +41,29 @@
             $j(".tab-body.active").empty();
             $j(".tab-body.active").append(items);
 
+            //detect if error happened
+            var bSuccess = (items.lastIndexOf("error.png") == -1) && (items.lastIndexOf("warning.png") == -1) && (items.lastIndexOf("Look event log for details") == -1);
+
             //change buttons visibility
 
-            $j("#delete_item").removeClass("disabled");
-            $j("#delete_item").addClass("enabled");
+            if (bSuccess) {
+                $j("#delete_item").removeClass("disabled");
+                $j("#delete_item").addClass("enabled");
+            }
 
             $j("#refresh_items").removeClass("disabled");
             $j("#refresh_items").addClass("enabled");
 
+            $j("#close_window").removeClass("disabled");
+            $j("#close_window").addClass("enabled");
+
             //register button handlers
 
-            $j("#delete_item.enabled").click(function () {
-                forceDelete(tcm);
-            });
+            if (bSuccess) {
+                $j("#delete_item.enabled").click(function () {
+                    forceDelete(tcm);
+                });
+            }
 
             $j("#refresh_items.enabled").click(function () {
                 loadItemsToDelete(tcm);

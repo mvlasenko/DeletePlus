@@ -59,6 +59,8 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Models
             {
                 if (this.Status == Status.Success)
                     return "success.png";
+                if (this.Status == Status.Delete)
+                    return "delete.16x16.png";
                 if (this.Status == Status.Warning)
                     return "warning.png";
                 if (this.Status == Status.Error)

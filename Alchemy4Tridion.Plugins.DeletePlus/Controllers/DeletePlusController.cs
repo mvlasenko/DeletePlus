@@ -126,10 +126,10 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Controllers
         private string CreateItem(ResultInfo result)
         {
             string html = "<div class=\"item\">";
-            html += "<div class=\"icon\" style=\"background-image: url(/WebUI/Editors/CME/Themes/Carbon2/icon_v7.1.0.66.627_.png?name=" + result.Icon + "&size=16)\"></div>";
-            html += "<div class=\"name\">" + result.Title + "</div>";
-            html += "<div class=\"path\">" + result.Path + "</div>";
-            html += "<div class=\"id\"><img src=\"/Alchemy/Plugins/Delete_Plus/assets/img/" + result.StatusIcon + "\" title=\"" + result.Message.Replace("\"", "'") + "\"/></div>";
+            html += string.Format("<div class=\"icon\" style=\"background-image: url(/WebUI/Editors/CME/Themes/Carbon2/icon_v7.1.0.66.627_.png?name={0}&size=16)\"></div>", result.Icon);
+            html += string.Format("<div class=\"name\" title=\"{0} ({1})\">{0}</div>", result.Title, result.TcmId);
+            html += string.Format("<div class=\"path\">{0}</div>", result.Path);
+            html += string.Format("<div class=\"id\"><img src=\"/Alchemy/Plugins/Delete_Plus/assets/img/{0}\" title=\"{1}\"/></div>", result.StatusIcon, result.Message.Replace("\"", "'"));
             html += "</div>";
             return html;
         }

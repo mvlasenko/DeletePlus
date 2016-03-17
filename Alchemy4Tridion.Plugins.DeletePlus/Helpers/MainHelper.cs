@@ -427,8 +427,19 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                 return LinkStatus.Error;
             }
 
-            tcmItem = GetBluePrintTopTcmId(client, tcmItem);
             RepositoryLocalObjectData itemData = ReadItem(client, tcmItem) as RepositoryLocalObjectData;
+            if (itemData == null)
+                return LinkStatus.NotFound;
+
+            if (itemData.BluePrintInfo.IsShared == true)
+            {
+                tcmItem = GetBluePrintTopTcmId(client, tcmItem);
+
+                itemData = ReadItem(client, tcmItem) as RepositoryLocalObjectData;
+                if (itemData == null)
+                    return LinkStatus.NotFound;
+            }
+
             result.Item = itemData.ToItem();
 
             if (delete)
@@ -440,9 +451,21 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                 }
 
                 //remove metadata schema
-                if (status != LinkStatus.Found && dependentItemType == ItemType.Schema)
+                if (dependentItemType == ItemType.Schema)
                 {
-                    status = RemoveMetadataSchema(client, tcmItem, out stackTraceMessage);
+                    status = RemoveMetadataSchema(client, tcmItem, tcmDependentItem, out stackTraceMessage);
+                }
+
+                //remove parameters schema
+                if (dependentItemType == ItemType.Schema && itemData is TemplateData)
+                {
+                    status = RemoveParameterSchema(client, tcmItem, tcmDependentItem, out stackTraceMessage);
+                }
+
+                //remove component template linked schema
+                if (itemType == ItemType.ComponentTemplate && dependentItemType == ItemType.Schema)
+                {
+                    status = RemoveCTLinkedSchema(client, tcmItem, tcmDependentItem, out stackTraceMessage);
                 }
 
                 //remove CP
@@ -459,6 +482,11 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                 else if (itemType == ItemType.ComponentTemplate && dependentItemType == ItemType.TemplateBuildingBlock)
                 {
                     status = RemoveTbbFromComponentTemplate(client, tcmItem, tcmDependentItem, out stackTraceMessage);
+                }
+                //remove TBB from compound TBB
+                else if (itemType == ItemType.TemplateBuildingBlock && dependentItemType == ItemType.TemplateBuildingBlock)
+                {
+                    status = RemoveTbbFromCompoundTbb(client, tcmItem, tcmDependentItem, out stackTraceMessage);
                 }
                 //change schema keyword field to text field
                 else if (itemType == ItemType.Schema && dependentItemType == ItemType.Category)
@@ -498,21 +526,33 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                 if (status == LinkStatus.Found)
                 {
                     result.Status = Status.Success;
-                    result.Message = string.Format("Item \"{1}\" was removed from \"{0}\".", itemData == null ? tcmItem : itemData.GetWebDav(), dependentItemData == null ? tcmDependentItem : dependentItemData.GetWebDav());
+                    result.Message = string.Format("Item \"{1}\" was removed from \"{0}\".", itemData.GetWebDav(), dependentItemData == null ? tcmDependentItem : dependentItemData.GetWebDav());
                 }
             }
             else
             {
-                //remove linked schema
+                //check if possible to remove linked schema
                 if (itemType == ItemType.Folder && dependentItemType == ItemType.Schema)
                 {
                     status = CheckRemoveFolderLinkedSchema(client, tcmItem);
                 }
 
-                //remove metadata schema
-                if (status != LinkStatus.Found && dependentItemType == ItemType.Schema)
+                //check if possible to remove metadata schema
+                if (dependentItemType == ItemType.Schema)
                 {
-                    status = CheckRemoveMetadataSchema(client, tcmItem);
+                    status = CheckRemoveMetadataSchema(client, tcmItem, tcmDependentItem);
+                }
+
+                //check if possible to remove parameters schema
+                if (dependentItemType == ItemType.Schema && itemData is TemplateData)
+                {
+                    status = CheckRemoveParameterSchema(client, tcmItem, tcmDependentItem);
+                }
+
+                //check if possible to remove component template linked schema
+                if (itemType == ItemType.ComponentTemplate && dependentItemType == ItemType.Schema)
+                {
+                    status = CheckRemoveCTLinkedSchema(client, tcmItem, tcmDependentItem);
                 }
 
                 //check if possible to remove CP
@@ -529,6 +569,11 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                 else if (itemType == ItemType.ComponentTemplate && dependentItemType == ItemType.TemplateBuildingBlock)
                 {
                     status = CheckRemoveTbbFromComponentTemplate(client, tcmItem, tcmDependentItem);
+                }
+                //check if possible to remove TBB from compound TBB
+                else if (itemType == ItemType.TemplateBuildingBlock && dependentItemType == ItemType.TemplateBuildingBlock)
+                {
+                    status = CheckRemoveTbbFromCompoundTbb(client, tcmItem, tcmDependentItem);
                 }
                 //change schema keyword field to text field
                 else if (itemType == ItemType.Schema && dependentItemType == ItemType.Category)
@@ -565,7 +610,7 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                 if (status == LinkStatus.Found)
                 {
                     result.Status = Status.Info;
-                    result.Message = string.Format("Remove item \"{1}\" from \"{0}\".", itemData == null ? tcmItem : itemData.GetWebDav(), dependentItemData == null ? tcmDependentItem : dependentItemData.GetWebDav());
+                    result.Message = string.Format("Remove item \"{1}\" from \"{0}\".", itemData.GetWebDav(), dependentItemData == null ? tcmDependentItem : dependentItemData.GetWebDav());
                 }
             }
 
@@ -573,7 +618,7 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
             {
                 result.Status = Status.Error;
                 result.StackTrace = stackTraceMessage;
-                result.Message = string.Format("Not able to unlink \"{1}\" from \"{0}\".", itemData == null ? tcmItem : itemData.GetWebDav(), dependentItemData == null ? tcmDependentItem : dependentItemData.GetWebDav());
+                result.Message = string.Format("Not able to unlink \"{1}\" from \"{0}\".", itemData.GetWebDav(), dependentItemData == null ? tcmDependentItem : dependentItemData.GetWebDav());
             }
 
             if(status != LinkStatus.NotFound)
@@ -617,12 +662,12 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
             return LinkStatus.Found;
         }
 
-        private static LinkStatus RemoveMetadataSchema(SessionAwareCoreServiceClient client, string itemUri, out string stackTraceMessage)
+        private static LinkStatus RemoveMetadataSchema(SessionAwareCoreServiceClient client, string itemUri, string schemaUri, out string stackTraceMessage)
         {
             stackTraceMessage = "";
 
             RepositoryLocalObjectData itemData = ReadItem(client, itemUri) as RepositoryLocalObjectData;
-            if (itemData == null || itemData.MetadataSchema == null || string.IsNullOrEmpty(itemData.MetadataSchema.IdRef) || itemData.MetadataSchema.IdRef == "tcm:0-0-0")
+            if (itemData == null || itemData.MetadataSchema == null || string.IsNullOrEmpty(itemData.MetadataSchema.IdRef) || itemData.MetadataSchema.IdRef != schemaUri)
                 return LinkStatus.NotFound;
 
             if (itemData is VersionedItemData)
@@ -686,10 +731,133 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
             }
         }
 
-        private static LinkStatus CheckRemoveMetadataSchema(SessionAwareCoreServiceClient client, string itemUri)
+        private static LinkStatus CheckRemoveMetadataSchema(SessionAwareCoreServiceClient client, string itemUri, string schemaUri)
         {
             RepositoryLocalObjectData itemData = ReadItem(client, itemUri) as RepositoryLocalObjectData;
-            if (itemData == null || itemData.MetadataSchema == null || string.IsNullOrEmpty(itemData.MetadataSchema.IdRef) || itemData.MetadataSchema.IdRef == "tcm:0-0-0")
+            if (itemData == null || itemData.MetadataSchema == null || string.IsNullOrEmpty(itemData.MetadataSchema.IdRef) || itemData.MetadataSchema.IdRef != schemaUri)
+                return LinkStatus.NotFound;
+
+            return LinkStatus.Found;
+        }
+
+        private static LinkStatus RemoveParameterSchema(SessionAwareCoreServiceClient client, string itemUri, string schemaUri, out string stackTraceMessage)
+        {
+            stackTraceMessage = "";
+
+            TemplateData templateData = ReadItem(client, itemUri) as TemplateData;
+            if (templateData == null || templateData.ParameterSchema == null || string.IsNullOrEmpty(templateData.ParameterSchema.IdRef) || templateData.ParameterSchema.IdRef != schemaUri)
+                return LinkStatus.NotFound;
+
+            if (templateData.BluePrintInfo.IsShared == true)
+            {
+                itemUri = GetBluePrintTopTcmId(client, itemUri);
+
+                templateData = ReadItem(client, itemUri) as TemplateData;
+                if (templateData == null)
+                    return LinkStatus.NotFound;
+            }
+
+            try
+            {
+                templateData = client.CheckOut(templateData.Id, true, new ReadOptions()) as TemplateData;
+            }
+            catch (Exception ex)
+            {
+
+            }
+
+            if (templateData == null)
+                return LinkStatus.NotFound;
+
+            //change schema id
+            templateData.ParameterSchema.IdRef = "tcm:0-0-0";
+
+            try
+            {
+                templateData = (TemplateData)client.Update(templateData, new ReadOptions());
+                client.CheckIn(templateData.Id, new ReadOptions());
+                return LinkStatus.Found;
+            }
+            catch (Exception ex)
+            {
+                stackTraceMessage = ex.Message;
+
+                if (templateData == null)
+                    return LinkStatus.Error;
+
+                client.UndoCheckOut(templateData.Id, true, new ReadOptions());
+                return LinkStatus.Error;
+            }
+        }
+
+        private static LinkStatus CheckRemoveParameterSchema(SessionAwareCoreServiceClient client, string itemUri, string schemaUri)
+        {
+            TemplateData templateData = ReadItem(client, itemUri) as TemplateData;
+            if (templateData == null || templateData.ParameterSchema == null || string.IsNullOrEmpty(templateData.ParameterSchema.IdRef) || templateData.ParameterSchema.IdRef != schemaUri)
+                return LinkStatus.NotFound;
+
+            return LinkStatus.Found;
+        }
+
+        private static LinkStatus RemoveCTLinkedSchema(SessionAwareCoreServiceClient client, string tcmComponentTemplate, string tcmSchema, out string stackTraceMessage)
+        {
+            stackTraceMessage = "";
+
+            ComponentTemplateData componentTemplate = ReadItem(client, tcmComponentTemplate) as ComponentTemplateData;
+            if (componentTemplate == null)
+                return LinkStatus.NotFound;
+
+            if(componentTemplate.RelatedSchemas.All(x => x.IdRef != tcmSchema))
+                return LinkStatus.NotFound;
+
+            if (componentTemplate.BluePrintInfo.IsShared == true)
+            {
+                tcmComponentTemplate = GetBluePrintTopTcmId(client, tcmComponentTemplate);
+
+                componentTemplate = ReadItem(client, tcmComponentTemplate) as ComponentTemplateData;
+                if (componentTemplate == null)
+                    return LinkStatus.NotFound;
+            }
+
+            try
+            {
+                componentTemplate = client.CheckOut(componentTemplate.Id, true, new ReadOptions()) as ComponentTemplateData;
+            }
+            catch (Exception ex)
+            {
+
+            }
+
+            if (componentTemplate == null)
+                return LinkStatus.NotFound;
+
+            componentTemplate.RelatedSchemas = componentTemplate.RelatedSchemas.Where(x => x.IdRef != tcmSchema).ToArray();
+
+            try
+            {
+                componentTemplate = (ComponentTemplateData)client.Update(componentTemplate, new ReadOptions());
+                client.CheckIn(componentTemplate.Id, new ReadOptions());
+                return LinkStatus.Found;
+            }
+            catch (Exception ex)
+            {
+                stackTraceMessage = ex.Message;
+
+                if (componentTemplate == null)
+                    return LinkStatus.Error;
+
+                client.UndoCheckOut(componentTemplate.Id, true, new ReadOptions());
+                return LinkStatus.Error;
+            }
+        }
+
+        private static LinkStatus CheckRemoveCTLinkedSchema(SessionAwareCoreServiceClient client, string tcmComponentTemplate, string tcmSchema)
+        {
+            ComponentTemplateData componentTemplate = ReadItem(client, tcmComponentTemplate) as ComponentTemplateData;
+            if (componentTemplate == null)
+                return LinkStatus.NotFound;
+
+            if (componentTemplate.RelatedSchemas.All(x => x.IdRef != tcmSchema))
                 return LinkStatus.NotFound;
 
             return LinkStatus.Found;
@@ -967,6 +1135,82 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                 return LinkStatus.NotFound;
 
             List<TbbInfo> tbbList = GetTbbList(componentTemplate.Content);
+            if (tbbList.Any(x => x.TcmId.GetId() == tcmTbb.GetId()))
+            {
+                return tbbList.Count == 1 ? LinkStatus.Mandatory : LinkStatus.Found;
+            }
+            return LinkStatus.NotFound;
+        }
+
+        private static LinkStatus RemoveTbbFromCompoundTbb(SessionAwareCoreServiceClient client, string tcmCompoundTbb, string tcmTbb, out string stackTraceMessage)
+        {
+            stackTraceMessage = "";
+
+            TemplateBuildingBlockData compoundTbb = ReadItem(client, tcmCompoundTbb) as TemplateBuildingBlockData;
+            if (compoundTbb == null || compoundTbb.TemplateType != "CompoundTemplate")
+                return LinkStatus.NotFound;
+
+            List<TbbInfo> tbbList = GetTbbList(compoundTbb.Content);
+            if (tbbList.Any(x => x.TcmId.GetId() == tcmTbb.GetId()))
+            {
+                if (tbbList.Count == 1)
+                    return LinkStatus.Mandatory;
+            }
+            else
+            {
+                return LinkStatus.NotFound;
+            }
+
+            string newContent = RemoveTbbFromTemplate(compoundTbb.Content, tcmTbb);
+
+            if (compoundTbb.BluePrintInfo.IsShared == true)
+            {
+                tcmCompoundTbb = GetBluePrintTopTcmId(client, tcmCompoundTbb);
+
+                compoundTbb = ReadItem(client, tcmCompoundTbb) as TemplateBuildingBlockData;
+                if (compoundTbb == null)
+                    return LinkStatus.NotFound;
+            }
+
+            try
+            {
+                compoundTbb = client.CheckOut(compoundTbb.Id, true, new ReadOptions()) as TemplateBuildingBlockData;
+            }
+            catch (Exception ex)
+            {
+
+            }
+
+            if (compoundTbb == null)
+                return LinkStatus.NotFound;
+
+            compoundTbb.Content = newContent;
+
+            try
+            {
+                compoundTbb = (TemplateBuildingBlockData)client.Update(compoundTbb, new ReadOptions());
+                client.CheckIn(compoundTbb.Id, new ReadOptions());
+                return LinkStatus.Found;
+            }
+            catch (Exception ex)
+            {
+                stackTraceMessage = ex.Message;
+
+                if (compoundTbb == null)
+                    return LinkStatus.Error;
+
+                client.UndoCheckOut(compoundTbb.Id, true, new ReadOptions());
+                return LinkStatus.Error;
+            }
+        }
+
+        private static LinkStatus CheckRemoveTbbFromCompoundTbb(SessionAwareCoreServiceClient client, string tcmCompoundTbb, string tcmTbb)
+        {
+            TemplateBuildingBlockData compoundTbb = ReadItem(client, tcmCompoundTbb) as TemplateBuildingBlockData;
+            if (compoundTbb == null || compoundTbb.TemplateType != "CompoundTemplate")
+                return LinkStatus.NotFound;
+
+            List<TbbInfo> tbbList = GetTbbList(compoundTbb.Content);
             if (tbbList.Any(x => x.TcmId.GetId() == tcmTbb.GetId()))
             {
                 return tbbList.Count == 1 ? LinkStatus.Mandatory : LinkStatus.Found;
@@ -1644,7 +1888,16 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                     //not able to unlink objects - delete whole parent object
                     if (status != LinkStatus.Found)
                     {
-                        DeleteTridionObject(client, usingItem, delete, results, tcmItem, usingCurrentItems.Any(x => x == usingItem), level + 1);
+                        ItemType usingItemType = GetItemType(usingItem);
+
+                        if (usingItemType == ItemType.Folder || usingItemType == ItemType.StructureGroup || usingItemType == ItemType.Category)
+                        {
+                            DeleteFolderOrStructureGroup(client, usingItem, delete, results, level + 1);
+                        }
+                        else
+                        {
+                            DeleteTridionObject(client, usingItem, delete, results, tcmItem, usingCurrentItems.Any(x => x == usingItem), level + 1);
+                        }
                     }
                 }
             }
@@ -1795,7 +2048,7 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                     {
                         Message = string.Format("Delete item \"{0}\"", itemData.GetWebDav()),
                         Item = itemData.ToItem(),
-                        Status = Status.Info
+                        Status = Status.Delete
                     });
                 }
             }
@@ -1933,7 +2186,7 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                     {
                         Message = string.Format("Delete publication \"{0}\"", publication.Title),
                         Item = publication.ToItem(),
-                        Status = Status.Info
+                        Status = Status.Delete
                     });
                 }
             }

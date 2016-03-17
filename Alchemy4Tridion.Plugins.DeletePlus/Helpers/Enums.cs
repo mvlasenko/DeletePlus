@@ -4,6 +4,7 @@
     {
         Info,
         Success,
+        Delete,
         Warning,
         Error,
         None
