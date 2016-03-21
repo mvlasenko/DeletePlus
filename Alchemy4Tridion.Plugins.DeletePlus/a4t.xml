@@ -1,9 +1,28 @@
 <?xml version="1.0"?>
 <plugin xmlns:c="http://www.alchemywebstore.com/configuration/definitions" xmlns="http://www.alchemywebstore.com/">
-  <id>662724ab-a415-431a-a3d3-98beddc57e0b</id>
+  <id>56e97278e4de0209b4c98a70</id>
   <name>Delete_Plus</name>
-  <description><![CDATA[Delete item and the chanin of dependent items.]]></description>
+  <description><![CDATA[Improved version of Delete button, that allows to delete item even if it has dependencies.
+
+Prior to item is deleted dependent items also deleted or modified.
+
+Cases when dependent items are modified:
+- component presentation is removed from page;
+- TBB is removed from PT or CT;
+- TBB is removed from compound TBB;
+- linked schema is removed from CT;
+- metadata schema is removed from any object that supports metadata;
+- parameter schema is removed from any template object;
+- schema keyword field is changed to text field (to unlink category and schema);
+- component link is removed from component/metadata (component link field is changed to non-mandatory, if necessary);
+- element history is deleted, if old dependencies found.
+
+If dependency if not from the list above then dependent item is deleted prior to delete selected item.
+
+It is possible to review all changes to be done before irreversible changes are made.]]></description>
   <version>1.0.0.0</version>
   <settings />
-  <versionId />
+  <versionId>56e97278e4de0209b4c98a71</versionId>
+  <frameworkVersion>0.7.0.0</frameworkVersion>
+  <buildTime>2016-03-21T10:45:38.1982054+00:00</buildTime>
 </plugin>
