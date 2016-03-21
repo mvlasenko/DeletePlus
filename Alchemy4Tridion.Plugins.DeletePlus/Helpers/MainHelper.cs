@@ -1992,7 +1992,7 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                         {
                             Message = string.Format("Deleteed item \"{0}\"", itemData.GetWebDav()),
                             Item = itemData.ToItem(),
-                            Status = Status.Success
+                            Status = Status.Deleted
                         });
                     }
                     catch (Exception ex)
@@ -2177,7 +2177,7 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                     {
                         Message = string.Format("Deleted publication \"{0}\"", publication.Title),
                         Item = publication.ToItem(),
-                        Status = Status.Success
+                        Status = Status.Deleted
                     });
                 }
                 else

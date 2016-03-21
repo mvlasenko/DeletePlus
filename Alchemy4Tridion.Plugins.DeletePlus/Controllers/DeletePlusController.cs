@@ -74,7 +74,7 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Controllers
             {
 
                 // Start building up a string of html to return, including headings for the table that the html will represent.
-                string html = "<div class=\"usingItems results disabled\">";
+                string html = "<div class=\"usingItems results\">";
                 html += CreateItemsHeading();
 
                 List<ResultInfo> results = new List<ResultInfo>();
@@ -117,7 +117,7 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Controllers
             html += "<div class=\"icon\">&nbsp</div>";
             html += "<div class=\"name\">Name</div>";
             html += "<div class=\"path\">Path</div>";
-            html += "<div class=\"id\">Operation</div>";
+            html += "<div class=\"operation\">Operation</div>";
             html += "</div>";
 
             return html;
@@ -125,11 +125,20 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Controllers
 
         private string CreateItem(ResultInfo result)
         {
-            string html = "<div class=\"item\">";
+            string html = "";
+            if (result.Status == Status.Deleted)
+            {
+                html += "<div class=\"item disabled\">";
+            }
+            else
+            {
+                html += string.Format("<div class=\"item\" id=\"{0}\">", result.TcmId);
+            }
+
             html += string.Format("<div class=\"icon\" style=\"background-image: url(/WebUI/Editors/CME/Themes/Carbon2/icon_v7.1.0.66.627_.png?name={0}&size=16)\"></div>", result.Icon);
             html += string.Format("<div class=\"name\" title=\"{0} ({1})\">{0}</div>", result.Title, result.TcmId);
             html += string.Format("<div class=\"path\">{0}</div>", result.Path);
-            html += string.Format("<div class=\"id\"><img src=\"/Alchemy/Plugins/Delete_Plus/assets/img/{0}\" title=\"{1}\"/></div>", result.StatusIcon, result.Message.Replace("\"", "'"));
+            html += string.Format("<div class=\"operation\"><img src=\"/Alchemy/Plugins/Delete_Plus/assets/img/{0}\" title=\"{1}\"/></div>", result.StatusIcon, result.Message.Replace("\"", "'"));
             html += "</div>";
             return html;
         }

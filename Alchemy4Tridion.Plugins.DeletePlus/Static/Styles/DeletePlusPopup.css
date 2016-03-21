@@ -48,7 +48,7 @@
     display:block;
 }
 .item {
-    cursor: default;
+    cursor: pointer;
     border-bottom: 1px solid #b8c1cc;
     font-size:11px;
     height: 18px;
@@ -100,10 +100,11 @@
 .results .icon{
     position:absolute;
 }
-.results.disabled .item {
+.results .item.disabled {
     border-bottom: 1px solid #FFF;
     color: #AAA;
     text-shadow: 1px 1px #FFF;
+    cursor: default;
 }
 .name {
     width:30%;
@@ -113,7 +114,7 @@
     width:60%;
     padding-left: 2px;
 }
-.id{
+.operation{
     width:10%;
     padding-left:2px;
     text-align: center;

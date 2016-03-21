@@ -41,10 +41,11 @@ Alchemy.command("${PluginName}", "DeletePlus", {
      * Executes your command. You can use _execute or execute as the property name.
      */
     execute: function (selection) {
-        // Gets the item id
+        // Gets the item id and its title
         var itemId = selection.getItem(0);
+        var title = $models.getItem(itemId).getStaticTitle();
         // Sets the url of a popup window, passing through params for the ID of the selected folder/item
-        var url = "${ViewsUrl}DeletePlusPopup.aspx?uri=" + itemId;
+        var url = "${ViewsUrl}DeletePlusPopup.aspx?uri=" + itemId + "&title=" + title;
         // Creates a popup with the above URL
         var popup = $popup.create(url, "menubar=no,location=no,resizable=no,scrollbars=no,status=no,width=700,height=450,top=10,left=10", null);
         popup.open();
