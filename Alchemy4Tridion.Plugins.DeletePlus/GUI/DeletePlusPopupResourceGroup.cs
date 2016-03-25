@@ -11,14 +11,17 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.GUI
             // only the filename of our CSS files are needed
             AddFile("DeletePlusPopup.css");
 
-            AddFile("favicon.png");
-
             // Since Alchemy comes with several libraries I can reference JQuery this way and avoid having
             // to add it myself
             Dependencies.AddLibraryJQuery();
+            Dependencies.Add("Tridion.Web.UI.Editors.CME");
+            Dependencies.Add("Tridion.Web.UI.Editors.CME.commands");
 
             // If you want this resource group to contain the js proxies to call your webservice, call AddWebApiProxy()
             AddWebApiProxy();
+
+            // Let's add our resources to the DeletePlusPopup.aspx page.  This will inject the resources without us having to manually edit it.
+            AttachToView("DeletePlusPopup.aspx");
         }
     }
 }

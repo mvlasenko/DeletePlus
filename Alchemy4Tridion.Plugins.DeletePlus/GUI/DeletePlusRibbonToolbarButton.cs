@@ -9,8 +9,10 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.GUI
             // The unique identifier used for the html element created.
             AssignId = "DeletePlusButton";
 
-            // The name of the command to execute when clicked
+            // Using command instead of .ascx so we can position it correctly
             Command = "DeletePlus";
+            GroupId = Constants.GroupIds.HomePage.ManageGroup;
+            InsertBefore = "DeleteBtn";
 
             // The label of the button.
             Name = "Delete Plus";
