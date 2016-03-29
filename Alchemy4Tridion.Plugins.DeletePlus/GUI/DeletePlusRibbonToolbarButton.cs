@@ -11,8 +11,6 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.GUI
 
             // Using command instead of .ascx so we can position it correctly
             Command = "DeletePlus";
-            GroupId = Constants.GroupIds.HomePage.ManageGroup;
-            InsertBefore = "DeleteBtn";
 
             // The label of the button.
             Name = "Delete Plus";
@@ -21,7 +19,8 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.GUI
             PageId = Constants.PageIds.HomePage;
 
             // Option GroupId, put this into an existing group (not capable if using a .ascx Control)
-            GroupId = Constants.GroupIds.HomePage.ShareGroup;
+            GroupId = Constants.GroupIds.HomePage.ManageGroup;
+            InsertBefore = "DeleteBtn";
 
             // The tooltip label that will get applied.
             Title = "Delete Plus";

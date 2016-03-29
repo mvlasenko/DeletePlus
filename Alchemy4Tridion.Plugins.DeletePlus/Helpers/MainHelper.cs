@@ -589,9 +589,8 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                     if (status == LinkStatus.Mandatory)
                     {
                         CheckRemoveSchemaMandatoryLinkFields(client, itemData, tcmDependentItem, results);
+                        status = LinkStatus.Found;
                     }
-
-                    status = CheckRemoveLinkFromComponent(client, tcmItem, tcmDependentItem);
                 }
                 //check if possible to remove component or keyword link from metadata
                 else if (dependentItemType == ItemType.Component || dependentItemType == ItemType.Keyword)
@@ -602,9 +601,8 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                     if (status == LinkStatus.Mandatory)
                     {
                         CheckRemoveSchemaMandatoryLinkFields(client, itemData, tcmDependentItem, results);
+                        status = LinkStatus.Found;
                     }
-
-                    status = CheckRemoveLinkFromMetadata(client, tcmItem, tcmDependentItem);
                 }
 
                 if (status == LinkStatus.Found)
@@ -1592,11 +1590,11 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                     continue;
 
                 SchemaFieldsData schemaFieldsData = client.ReadSchemaFields(innerSchemaUri, false, null);
-                if (schemaFieldsData.Fields.Any(x => x.Name == field.Name))
+                if (schemaFieldsData.Fields != null && schemaFieldsData.Fields.Any(x => x.Name == field.Name))
                 {
                     schemaFieldsData.Fields.First(x => x.Name == field.Name).MinOccurs = 0;
                 }
-                if (schemaFieldsData.MetadataFields.Any(x => x.Name == field.Name))
+                if (schemaFieldsData.MetadataFields != null && schemaFieldsData.MetadataFields.Any(x => x.Name == field.Name))
                 {
                     schemaFieldsData.MetadataFields.First(x => x.Name == field.Name).MinOccurs = 0;
                 }
@@ -1618,6 +1616,7 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                 try
                 {
                     client.Save(innerSchemaData, new ReadOptions());
+                    client.CheckIn(innerSchemaUri, new ReadOptions());
 
                     results.Add(new ResultInfo
                     {

@@ -14,15 +14,43 @@ namespace DeletePlusTest
         static void Main(string[] args)
         {
             SessionAwareCoreServiceClient client = GetTcpClient("localhost", "admin", "123", "2013");
-            string tcmItem = "tcm:6069-38351-2048";
+            string tcmItem = "tcm:6068-38337";
 
             //var list = MainHelper.GetItemsByParentContainer(client, "tcm:5061-11404-2");
 
             //var list = MainHelper.GetPublications(client);
 
             List<ResultInfo> results = new List<ResultInfo>();
-            MainHelper.Delete(client, tcmItem, false, results);
+            MainHelper.Delete(client, tcmItem, true, results);
+
+            string html = "";
+
+            foreach (ResultInfo result in results)
+            {
+                html += CreateItem(result) + Environment.NewLine;
+            }
         }
+
+        private static string CreateItem(ResultInfo result)
+        {
+            string html = "";
+            if (result.Status == Status.Deleted)
+            {
+                html += "<div class=\"item disabled\">";
+            }
+            else
+            {
+                html += string.Format("<div class=\"item\" id=\"{0}\">", result.TcmId);
+            }
+
+            html += string.Format("<div class=\"icon\" style=\"background-image: url(/WebUI/Editors/CME/Themes/Carbon2/icon_v7.1.0.66.627_.png?name={0}&size=16)\"></div>", result.Icon);
+            html += string.Format("<div class=\"name\" title=\"{0} ({1})\">{0}</div>", result.Title, result.TcmId);
+            html += string.Format("<div class=\"path\">{0}</div>", result.Path);
+            html += string.Format("<div class=\"operation\"><img src=\"/Alchemy/Plugins/Delete_Plus/assets/img/{0}\" title=\"{1}\"/></div>", result.StatusIcon, result.Message.Replace("\"", "'"));
+            html += "</div>";
+            return html;
+        }
+
 
         public static SessionAwareCoreServiceClient GetTcpClient(string host, string username, string password, string clientVersion)
         {

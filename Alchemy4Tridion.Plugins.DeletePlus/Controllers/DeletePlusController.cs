@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Web.Http;
 using Alchemy4Tridion.Plugins.DeletePlus.Helpers;
 using Alchemy4Tridion.Plugins.DeletePlus.Models;
@@ -59,8 +60,8 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Controllers
                     this.Client.Abort();
                 }
 
-                // We are rethrowing the original exception and just letting webapi handle it.
-                //throw ex;
+                // Write to Application Event Log
+                EventLog.WriteEntry("Alchemy4Tridion.Plugins.DeletePlus", ex.Message + "\n\nTrace:\n" + ex.StackTrace, EventLogEntryType.Error);
 
                 return ErrorMessage();
             }
@@ -104,8 +105,8 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Controllers
                     this.Client.Abort();
                 }
 
-                // We are rethrowing the original exception and just letting webapi handle it.
-                //throw ex;
+                // Write to Application Event Log
+                EventLog.WriteEntry("Alchemy4Tridion.Plugins.DeletePlus", ex.Message + "\n\nTrace:\n" + ex.StackTrace, EventLogEntryType.Error);
 
                 return ErrorMessage();
             }
