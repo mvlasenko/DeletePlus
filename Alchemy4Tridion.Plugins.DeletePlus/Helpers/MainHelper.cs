@@ -1620,7 +1620,7 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
 
                     results.Add(new ResultInfo
                     {
-                        Status = Status.Info,
+                        Status = Status.Success,
                         Item = innerSchemaData.ToItem(),
                         Message = string.Format("Make non-mandatory field \"{0}\" in \"{1}\".", field.Name, innerSchemaData.GetWebDav())
                     });
