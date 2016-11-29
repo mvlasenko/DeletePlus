@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<plugin xmlns:c="http://www.alchemywebstore.com/configuration/definitions" xmlns="http://www.alchemywebstore.com/">
+<plugin xmlns:c="https://www.alchemywebstore.com/configuration/definitions" xmlns="http://www.alchemywebstore.com/">
   <id>56e97278e4de0209b4c98a70</id>
   <name>Delete_Plus</name>
   <description><![CDATA[Improved version of Delete button, that allows to delete item even if it has dependencies.
@@ -21,8 +21,8 @@ If dependency if not from the list above then dependent item is deleted prior to
 
 It is possible to review all changes to be done before irreversible changes are made.]]></description>
   <version>1.0.0.0</version>
+  <references />
   <settings />
   <versionId>56e97278e4de0209b4c98a71</versionId>
-  <frameworkVersion>0.7.0.0</frameworkVersion>
-  <buildTime>2016-03-21T12:45:38.1982054+02:00</buildTime>
+  <frameworkVersion>0.8.2.0</frameworkVersion>
 </plugin>
