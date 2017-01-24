@@ -24,15 +24,23 @@
         //disable buttons
         $j("#delete_item").removeClass("enabled");
         $j("#delete_item").addClass("disabled");
+        $j("#delete_item").unbind();
+
+        $j("#unpublish_item").removeClass("enabled");
+        $j("#unpublish_item").addClass("disabled");
+        $j("#unpublish_item").unbind();
 
         $j("#go_to_item_location").removeClass("enabled");
         $j("#go_to_item_location").addClass("disabled");
+        $j("#go_to_item_location").unbind();
 
         $j("#refresh_items").removeClass("enabled");
         $j("#refresh_items").addClass("disabled");
+        $j("#refresh_items").unbind();
 
         $j("#close_window").removeClass("disabled");
         $j("#close_window").addClass("enabled");
+        $j("#close_window").unbind();
 
         //enable progress bar
         $j("#progBar").show();
@@ -52,13 +60,19 @@
             $j(".tab-body.active").append(items);
 
             //detect if error happened
-            var bSuccess = (items.lastIndexOf("error.png") == -1) && (items.lastIndexOf("warning.png") == -1) && (items.lastIndexOf("Look event log for details") == -1);
+            var bSuccess = (items.lastIndexOf("error.png") === -1) && (items.lastIndexOf("warning.png") === -1) && (items.lastIndexOf("Look event log for details") === -1);
+            var bNeedUnpublish = (items.lastIndexOf("warning.png") > -1);
 
             //change buttons visibility
 
             if (bSuccess) {
                 $j("#delete_item").removeClass("disabled");
                 $j("#delete_item").addClass("enabled");
+            }
+
+            if (bNeedUnpublish) {
+                $j("#unpublish_item").removeClass("disabled");
+                $j("#unpublish_item").addClass("enabled");
             }
 
             $j("#refresh_items").removeClass("disabled");
@@ -72,6 +86,12 @@
             if (bSuccess) {
                 $j("#delete_item.enabled").click(function () {
                     forceDelete(tcm);
+                });
+            }
+
+            if (bNeedUnpublish) {
+                $j("#unpublish_item.enabled").click(function () {
+                    forceUnpublish(tcm);
                 });
             }
 
@@ -101,15 +121,23 @@
         //disable buttons
         $j("#delete_item").removeClass("enabled");
         $j("#delete_item").addClass("disabled");
+        $j("#delete_item").unbind();
+
+        $j("#unpublish_item").removeClass("enabled");
+        $j("#unpublish_item").addClass("disabled");
+        $j("#unpublish_item").unbind();
 
         $j("#go_to_item_location").removeClass("enabled");
         $j("#go_to_item_location").addClass("disabled");
+        $j("#go_to_item_location").unbind();
 
         $j("#refresh_items").removeClass("enabled");
         $j("#refresh_items").addClass("disabled");
+        $j("#refresh_items").unbind();
 
         $j("#close_window").removeClass("enabled");
         $j("#close_window").addClass("disabled");
+        $j("#close_window").unbind();
 
         //enable progress bar
         $j("#progBar").show();
@@ -136,6 +164,81 @@
 
             setupForItemClicked();
 
+            var msg = $messages.createMessage(Tridion.MessageCenter.Implementation.Notification, "Deleted", "Item and all related items are deleted", false, true);
+            $messages.registerMessage(msg);
+
+            //todo: refresh main window
+            //$display.getView().refreshList();
+            window.top.frames[0].Tridion.getView().refreshList();
+
+        })
+        .error(function (type, error) {
+            // First arg is a string that shows the type of error i.e. (500 Internal), 2nd arg is object representing
+            // the error.  For BadRequests and Exceptions, the error message will be in the error.message property.
+            console.log("There was an error", error.message);
+        })
+        .complete(function () {
+            // this is called regardless of success or failure.
+        });
+    }
+
+    function forceUnpublish(tcmInput) {
+
+        //disable buttons
+        $j("#delete_item").removeClass("enabled");
+        $j("#delete_item").addClass("disabled");
+        $j("#delete_item").unbind();
+
+        $j("#unpublish_item").removeClass("enabled");
+        $j("#unpublish_item").addClass("disabled");
+        $j("#unpublish_item").unbind();
+
+        $j("#go_to_item_location").removeClass("enabled");
+        $j("#go_to_item_location").addClass("disabled");
+        $j("#go_to_item_location").unbind();
+
+        $j("#refresh_items").removeClass("enabled");
+        $j("#refresh_items").addClass("disabled");
+        $j("#refresh_items").unbind();
+
+        $j("#close_window").removeClass("enabled");
+        $j("#close_window").addClass("disabled");
+        $j("#close_window").unbind();
+
+        //enable progress bar
+        $j("#progBar").show();
+
+        // This is the call to my controller where the core service code is used get the list of items
+        Alchemy.Plugins["${PluginName}"].Api.DeletePlusService.getUnpublishingItems(tcmInput).success(function (items) {
+
+            //disable progress bar
+            $j("#progBar").hide();
+
+            $j(".tab-body.active").empty();
+            $j(".tab-body.active").append(items);
+
+            //change buttons visibility
+
+            $j("#refresh_items").removeClass("disabled");
+            $j("#refresh_items").addClass("enabled");
+
+            $j("#close_window").removeClass("disabled");
+            $j("#close_window").addClass("enabled");
+
+            //register button handlers
+
+            $j("#refresh_items.enabled").click(function () {
+                loadItemsToDelete(tcm, title);
+            });
+
+            $j("#close_window.enabled").click(function () {
+                closeWindow();
+            });
+
+            setupForItemClicked();
+
+            var msg = $messages.createMessage(Tridion.MessageCenter.Implementation.Notification, "Unpublishing", "Unpublishing items have been sent to queue", false, true);
+            $messages.registerMessage(msg);
         })
         .error(function (type, error) {
             // First arg is a string that shows the type of error i.e. (500 Internal), 2nd arg is object representing

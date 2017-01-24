@@ -21,20 +21,20 @@ namespace DeletePlusTest
             //var list = MainHelper.GetPublications(client);
 
             List<ResultInfo> results = new List<ResultInfo>();
-            MainHelper.Delete(client, tcmItem, true, results);
+            MainHelper.Delete(client, tcmItem, true, false, results);
 
             string html = "";
 
             foreach (ResultInfo result in results)
             {
-                html += CreateItem(result) + Environment.NewLine;
+                html += CreateItem(result, false) + Environment.NewLine;
             }
         }
 
-        private static string CreateItem(ResultInfo result)
+        private static string CreateItem(ResultInfo result, bool disabled)
         {
             string html = "";
-            if (result.Status == Status.Deleted)
+            if (disabled)
             {
                 html += "<div class=\"item disabled\">";
             }
@@ -50,7 +50,6 @@ namespace DeletePlusTest
             html += "</div>";
             return html;
         }
-
 
         public static SessionAwareCoreServiceClient GetTcpClient(string host, string username, string password, string clientVersion)
         {

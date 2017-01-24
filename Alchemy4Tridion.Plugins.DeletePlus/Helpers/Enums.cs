@@ -5,7 +5,7 @@
         Info,
         Success,
         Delete,
-        Deleted,
+        Unpublish,
         Warning,
         Error,
         None

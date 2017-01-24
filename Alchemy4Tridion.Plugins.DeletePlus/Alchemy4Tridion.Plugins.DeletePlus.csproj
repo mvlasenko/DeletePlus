@@ -103,6 +103,7 @@
     <Content Include="Static\Images\error.png" />
     <Content Include="Static\Images\favicon.png" />
     <Content Include="Static\Images\info.png" />
+    <Content Include="Static\Images\publishing-queue.16x16.png" />
     <Content Include="Static\Images\success.png" />
     <Content Include="Static\Images\warning.png" />
     <Content Include="Static\Scripts\DeletePlusCommand.js" />

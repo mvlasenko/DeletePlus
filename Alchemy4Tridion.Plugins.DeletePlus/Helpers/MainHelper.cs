@@ -16,7 +16,7 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
 
         public static bool ExistsItem(SessionAwareCoreServiceClient client, string tcmItem)
         {
-            return (ReadItem(client, tcmItem) != null);
+            return ReadItem(client, tcmItem) != null;
         }
 
         public static IdentifiableObjectData ReadItem(SessionAwareCoreServiceClient client, string id)
@@ -370,21 +370,21 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
 
         #region Tridion delete
 
-        public static void Delete(SessionAwareCoreServiceClient client, string tcmItem, bool delete, List<ResultInfo> results)
+        public static void Delete(SessionAwareCoreServiceClient client, string tcmItem, bool delete, bool unpublish, List<ResultInfo> results)
         {
             ItemType itemType = GetItemType(tcmItem);
 
             if (itemType == ItemType.Publication)
             {
-                DeletePublication(client, tcmItem, delete, results);
+                DeletePublication(client, tcmItem, delete, unpublish, results);
             }
             else if (itemType == ItemType.Folder || itemType == ItemType.StructureGroup || itemType == ItemType.Category)
             {
-                DeleteFolderOrStructureGroup(client, tcmItem, delete, results);
+                DeleteFolderOrStructureGroup(client, tcmItem, delete, unpublish, results);
             }
             else
             {
-                DeleteTridionObject(client, tcmItem, delete, results);
+                DeleteTridionObject(client, tcmItem, delete, unpublish, results);
             }
         }
 
@@ -1819,7 +1819,7 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
             return status;
         }
 
-        public static void DeleteTridionObject(SessionAwareCoreServiceClient client, string tcmItem, bool delete, List<ResultInfo> results, string parentTcmId = "", bool currentVersion = true, int level = 0)
+        public static void DeleteTridionObject(SessionAwareCoreServiceClient client, string tcmItem, bool delete, bool unpublish, List<ResultInfo> results, string parentTcmId = "", bool currentVersion = true, int level = 0)
         {
             if (tcmItem.StartsWith("tcm:0-"))
                 return;
@@ -1891,34 +1891,37 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
 
                         if (usingItemType == ItemType.Folder || usingItemType == ItemType.StructureGroup || usingItemType == ItemType.Category)
                         {
-                            DeleteFolderOrStructureGroup(client, usingItem, delete, results, level + 1);
+                            DeleteFolderOrStructureGroup(client, usingItem, delete, unpublish, results, level + 1);
                         }
                         else
                         {
-                            DeleteTridionObject(client, usingItem, delete, results, tcmItem, usingCurrentItems.Any(x => x == usingItem), level + 1);
+                            DeleteTridionObject(client, usingItem, delete, unpublish, results, tcmItem, usingCurrentItems.Any(x => x == usingItem), level + 1);
                         }
                     }
                 }
             }
 
-            if (delete)
+            if (unpublish)
             {
-                //item is published - not possible to delete - STOP PROCESSING
+                //item is published - start unpublishing
                 if (IsPublished(client, tcmItem))
                 {
-                    foreach (ItemInfo publishedItem in GetPublishedItems(client, itemData.ToItem()))
+                    foreach (KeyValuePair<string, ItemInfo> publishedItem in GetPublishedItems(client, itemData.ToItem()))
                     {
+                        //start unpublishing
+                        UnPublish(client, new[] { publishedItem.Value.TcmId }, new[] { publishedItem.Key });
+
                         results.Add(new ResultInfo
                         {
-                            Message = string.Format("Item \"{0}\" is published", publishedItem.Path),
-                            Item = publishedItem,
-                            Status = Status.Error
+                            Message = string.Format("Unpublishing item \"{0}\" from target \"{1}\"...", publishedItem.Value.Path, publishedItem.Key),
+                            Item = publishedItem.Value,
+                            Status = Status.Unpublish
                         });
                     }
-
-                    return;
                 }
-
+            }
+            else if (delete)
+            {
                 //unlocalize before delete
                 if (isAnyLocalized)
                 {
@@ -1991,7 +1994,7 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                         {
                             Message = string.Format("Deleteed item \"{0}\"", itemData.GetWebDav()),
                             Item = itemData.ToItem(),
-                            Status = Status.Deleted
+                            Status = Status.Delete
                         });
                     }
                     catch (Exception ex)
@@ -2011,12 +2014,12 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                 //item is published - not possible to delete - WARNING
                 if (IsPublished(client, tcmItem))
                 {
-                    foreach (ItemInfo publishedItem in GetPublishedItems(client, itemData.ToItem()))
+                    foreach (KeyValuePair<string, ItemInfo> publishedItem in GetPublishedItems(client, itemData.ToItem()))
                     {
                         results.Add(new ResultInfo
                         {
-                            Message = string.Format("Unpublish manually item \"{0}\"", publishedItem.Path),
-                            Item = publishedItem,
+                            Message = string.Format("Unpublish item \"{0}\" from target \"{1}\"", publishedItem.Value.Path, publishedItem.Key),
+                            Item = publishedItem.Value,
                             Status = Status.Warning
                         });
                     }
@@ -2053,7 +2056,7 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
             }
         }
 
-        public static void DeleteFolderOrStructureGroup(SessionAwareCoreServiceClient client, string tcmFolder, bool delete, List<ResultInfo> results, int level = 0)
+        public static void DeleteFolderOrStructureGroup(SessionAwareCoreServiceClient client, string tcmFolder, bool delete, bool unpublish, List<ResultInfo> results, int level = 0)
         {
             if (results.Any(x => x.Status == Status.Error))
                 return;
@@ -2096,12 +2099,12 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                 {
                     if (childItem.ItemType == ItemType.Folder || childItem.ItemType == ItemType.StructureGroup)
                     {
-                        DeleteFolderOrStructureGroup(client, childItem.TcmId, delete, results, level + 1);
+                        DeleteFolderOrStructureGroup(client, childItem.TcmId, delete, unpublish, results, level + 1);
                     }
                     else
                     {
                         if (ExistsItem(client, childItem.TcmId))
-                            DeleteTridionObject(client, childItem.TcmId, delete, results, tcmFolder, true, level);
+                            DeleteTridionObject(client, childItem.TcmId, delete, unpublish, results, tcmFolder, true, level);
                     }
 
                     if (results.Any(x => x.Status == Status.Error))
@@ -2109,10 +2112,10 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                 }
             }
 
-            DeleteTridionObject(client, tcmFolder, delete, results, string.Empty, true, level);
+            DeleteTridionObject(client, tcmFolder, delete, unpublish, results, string.Empty, true, level);
         }
 
-        public static void DeletePublication(SessionAwareCoreServiceClient client, string tcmPublication, bool delete, List<ResultInfo> results, int level = 0)
+        public static void DeletePublication(SessionAwareCoreServiceClient client, string tcmPublication, bool delete, bool unpublish, List<ResultInfo> results, int level = 0)
         {
             if (results.Any(x => x.Status == Status.Error))
                 return;
@@ -2150,11 +2153,11 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                 ItemType itemType = GetItemType(usingItem);
                 if (itemType == ItemType.Publication)
                 {
-                    DeletePublication(client, usingItem, delete, results, level + 1);
+                    DeletePublication(client, usingItem, delete, unpublish, results, level + 1);
                 }
                 else
                 {
-                    DeleteTridionObject(client, usingItem, delete, results, string.Empty, true, level + 1);
+                    DeleteTridionObject(client, usingItem, delete, unpublish, results, string.Empty, true, level + 1);
                 }
             }
 
@@ -2162,7 +2165,7 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
             List<ItemInfo> pulishedItems = GetItemsByPublication(client, tcmPublication, true).Where(x => x.IsPublished).ToList();
             foreach (ItemInfo publishedItem in pulishedItems)
             {
-                DeleteTridionObject(client, publishedItem.TcmId, delete, results, string.Empty, true, level);
+                DeleteTridionObject(client, publishedItem.TcmId, delete, unpublish, results, string.Empty, true, level);
             }
 
             try
@@ -2176,7 +2179,7 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                     {
                         Message = string.Format("Deleted publication \"{0}\"", publication.Title),
                         Item = publication.ToItem(),
-                        Status = Status.Deleted
+                        Status = Status.Delete
                     });
                 }
                 else
@@ -2210,9 +2213,53 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
             return client.GetListPublishInfo(tcmItem).Any();
         }
 
-        private static List<ItemInfo> GetPublishedItems(SessionAwareCoreServiceClient client, ItemInfo item)
+        private static Dictionary<string, ItemInfo> GetPublishedItems(SessionAwareCoreServiceClient client, ItemInfo item)
         {
-            return client.GetListPublishInfo(item.TcmId).Select(p => new ItemInfo {TcmId = GetBluePrintItemTcmId(item.TcmId, p.Repository.IdRef), Title = item.Title, Icon = item.Icon, ItemType = item.ItemType, IsPublished = true, FromPub = p.Repository.Title, Path = string.IsNullOrEmpty(item.Path) ? string.Empty : item.Path.Replace(item.Path.Trim('\\').Split('\\')[0], p.Repository.Title)}).ToList();
+            return client.GetListPublishInfo(item.TcmId).ToDictionary(publishData => publishData.PublicationTarget.IdRef, publishData => new ItemInfo {TcmId = GetBluePrintItemTcmId(item.TcmId, publishData.Repository.IdRef), Title = item.Title, Icon = item.Icon, ItemType = item.ItemType, IsPublished = true, FromPub = publishData.Repository.Title, Path = string.IsNullOrEmpty(item.Path) ? string.Empty : item.Path.Replace(item.Path.Trim('\\').Split('\\')[0], publishData.Repository.Title)});
+        }
+
+        public static string[] Publish(SessionAwareCoreServiceClient client, string[] items, string[] targets)
+        {
+            RenderInstructionData renderInstruction = new RenderInstructionData();
+            ResolveInstructionData resolveInstruction = new ResolveInstructionData
+            {
+                IncludeWorkflow = true
+            };
+
+            PublishInstructionData publishInstruction = new PublishInstructionData
+            {
+                DeployAt = DateTime.Now,
+                MaximumNumberOfRenderFailures = 0,
+                RenderInstruction = renderInstruction,
+                ResolveInstruction = resolveInstruction,
+                StartAt = DateTime.Now
+            };
+
+            var transactions = client.Publish(items, publishInstruction, targets, PublishPriority.Normal, null);
+            if (transactions == null)
+                return null;
+
+            return transactions.Select(x => x.Id).ToArray();
+        }
+
+        public static string[] UnPublish(SessionAwareCoreServiceClient client, string[] items, string[] targets)
+        {
+            ResolveInstructionData resolveInstruction = new ResolveInstructionData
+            {
+                IncludeWorkflow = true
+            };
+
+            UnPublishInstructionData unPublishInstruction = new UnPublishInstructionData
+            {
+                ResolveInstruction = resolveInstruction,
+                StartAt = DateTime.Now
+            };
+
+            var transactions = client.UnPublish(items, unPublishInstruction, targets, PublishPriority.Normal, null);
+            if (transactions == null)
+                return null;
+
+            return transactions.Select(x => x.Id).ToArray();
         }
 
         #endregion

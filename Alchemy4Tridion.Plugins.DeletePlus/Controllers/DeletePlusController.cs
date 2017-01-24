@@ -34,12 +34,12 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Controllers
                 html += CreateItemsHeading();
 
                 List<ResultInfo> results  = new List<ResultInfo>();
-                MainHelper.Delete(this.Client, "tcm:" + tcmItem, false, results);
+                MainHelper.Delete(this.Client, "tcm:" + tcmItem, false, false, results);
 
                 // Iterate over all items returned by the above filtered list returned.
                 foreach (ResultInfo result in results)
                 {
-                    html += CreateItem(result) + Environment.NewLine;
+                    html += CreateItem(result, false) + Environment.NewLine;
                 }
 
                 // Close the div we opened above
@@ -79,12 +79,57 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Controllers
                 html += CreateItemsHeading();
 
                 List<ResultInfo> results = new List<ResultInfo>();
-                MainHelper.Delete(this.Client, "tcm:" + tcmItem, true, results);
+                MainHelper.Delete(this.Client, "tcm:" + tcmItem, true, false, results);
 
                 // Iterate over all items returned by the above filtered list returned.
                 foreach (ResultInfo result in results)
                 {
-                    html += CreateItem(result) + Environment.NewLine;
+                    html += CreateItem(result, true) + Environment.NewLine;
+                }
+
+                // Close the div we opened above
+                html += "</div>";
+
+                // Explicitly abort to ensure there are no memory leaks.
+                this.Client.Abort();
+
+                // Return the html we've built.
+                return html;
+            }
+            catch (Exception ex)
+            {
+                // Proper way of ensuring that the client gets closed... we close it in our try block above,
+                // then in a catch block if an exception is thrown we abort it.
+                if (this.Client != null)
+                {
+                    this.Client.Abort();
+                }
+
+                // Write to Application Event Log
+                EventLog.WriteEntry("Alchemy4Tridion.Plugins.DeletePlus", ex.Message + "\n\nTrace:\n" + ex.StackTrace, EventLogEntryType.Error);
+
+                return ErrorMessage();
+            }
+        }
+
+        [HttpGet]
+        [Route("UnpublishingItems/{tcmItem}")]
+        public string GetUnpublishingItems(string tcmItem)
+        {
+            try
+            {
+
+                // Start building up a string of html to return, including headings for the table that the html will represent.
+                string html = "<div class=\"usingItems results\">";
+                html += CreateItemsHeading();
+
+                List<ResultInfo> results = new List<ResultInfo>();
+                MainHelper.Delete(this.Client, "tcm:" + tcmItem, true, true, results);
+
+                // Iterate over all items returned by the above filtered list returned.
+                foreach (ResultInfo result in results)
+                {
+                    html += CreateItem(result, true) + Environment.NewLine;
                 }
 
                 // Close the div we opened above
@@ -124,10 +169,10 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Controllers
             return html;
         }
 
-        private string CreateItem(ResultInfo result)
+        private string CreateItem(ResultInfo result, bool disabled)
         {
             string html = "";
-            if (result.Status == Status.Deleted)
+            if (disabled)
             {
                 html += "<div class=\"item disabled\">";
             }
