@@ -59,7 +59,7 @@
             $j(".tab-body.active").append(items);
 
             //detect if error happened
-            var bSuccess = (items.lastIndexOf("error.png") === -1) && (items.lastIndexOf("unpublish.16x16.png") === -1) && (items.lastIndexOf("Look event log for details") === -1);
+            var bSuccess = (items.lastIndexOf("error.png") === -1) && (items.lastIndexOf("unpublish.16x16.png") === -1);
             var bNeedUnpublish = (items.lastIndexOf("unpublish.16x16.png") > -1);
 
             //change buttons visibility

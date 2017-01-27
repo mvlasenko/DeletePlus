@@ -6,7 +6,7 @@
 
 Prior to item is deleted dependent items also deleted or modified.
 
-Cases when dependent items are modified:
+Cases when dependent items can be modified:
 - component presentation is removed from page;
 - TBB is removed from PT or CT;
 - TBB is removed from compound TBB;
@@ -19,7 +19,7 @@ Cases when dependent items are modified:
 
 If dependency if not from the list above then dependent item is deleted prior to delete selected item.
 
-It is possible to review all changes to be done before irreversible changes are made.]]></description>
+It is possible to review all changes before irreversible changes are made.]]></description>
   <version>1.0.0.0</version>
   <references />
   <settings />

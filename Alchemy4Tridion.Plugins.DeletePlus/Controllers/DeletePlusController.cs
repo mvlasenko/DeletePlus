@@ -65,9 +65,9 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Controllers
                 }
 
                 // Write to Application Event Log
-                EventLog.WriteEntry("Alchemy4Tridion.Plugins.DeletePlus", ex.Message + "\n\nTrace:\n" + ex.StackTrace, EventLogEntryType.Error);
+                //EventLog.WriteEntry("Alchemy4Tridion.Plugins.DeletePlus", ex.Message + "\n\nTrace:\n" + ex.StackTrace, EventLogEntryType.Error);
 
-                return ErrorMessage();
+                throw ex;
             }
         }
 
@@ -113,9 +113,9 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Controllers
                 }
 
                 // Write to Application Event Log
-                EventLog.WriteEntry("Alchemy4Tridion.Plugins.DeletePlus", ex.Message + "\n\nTrace:\n" + ex.StackTrace, EventLogEntryType.Error);
+                //EventLog.WriteEntry("Alchemy4Tridion.Plugins.DeletePlus", ex.Message + "\n\nTrace:\n" + ex.StackTrace, EventLogEntryType.Error);
 
-                return ErrorMessage();
+                throw ex;
             }
         }
 
@@ -161,9 +161,9 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Controllers
                 }
 
                 // Write to Application Event Log
-                EventLog.WriteEntry("Alchemy4Tridion.Plugins.DeletePlus", ex.Message + "\n\nTrace:\n" + ex.StackTrace, EventLogEntryType.Error);
+                //EventLog.WriteEntry("Alchemy4Tridion.Plugins.DeletePlus", ex.Message + "\n\nTrace:\n" + ex.StackTrace, EventLogEntryType.Error);
 
-                return ErrorMessage();
+                throw ex;
             }
         }
 
@@ -202,17 +202,10 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Controllers
                 treeIcons += string.Format("<img src=\"/Alchemy/Plugins/Delete_Plus/assets/img/{0}\" />", result.TreeIcon);
             }
 
-            html += string.Format("<td class=\"name\" title=\"{0} ({1})\"><div class=\"treeicon\" style=\"width: {3}px; text-align: right;\">{4}</div><div class=\"icon\" style=\"background-image: url(/WebUI/Editors/CME/Themes/Carbon2/Images/Icons/{2}.16x16.png)\"></div><div class=\"title\">{0}</div></td>", result.Title, result.TcmId, result.Icon, result.Level * 16, treeIcons);
+            html += string.Format("<td class=\"name\" title=\"{0} ({1})\"><div class=\"treeicon\" style=\"width: {3}px; text-align: right;\">{4}</div><div class=\"icon\" style=\"background-image: url(/WebUI/Editors/CME/Themes/Carbon2/icon_v7.1.0.66.627_.png?name={2}&size=16)\"></div><div class=\"title\">{0}</div></td>", result.Title, result.TcmId, result.Icon, result.Level * 16, treeIcons);
             html += string.Format("<td class=\"path\">{0}</td>", result.Path);
             html += string.Format("<td class=\"operation\"><img src=\"/Alchemy/Plugins/Delete_Plus/assets/img/{0}\" title=\"{1}\"/></td>", result.StatusIcon, result.Message.Replace("\"", "'"));
             html += "</tr>";
-            return html;
-        }
-
-        private string ErrorMessage()
-        {
-            string html = "<h1>Error</h1>";
-            html += "<p>Look event log for details</p>";
             return html;
         }
 
