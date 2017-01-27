@@ -6,6 +6,10 @@
         Success,
         Delete,
         Unpublish,
+        Unlink,
+        Unlocalize,
+        ChangeHistory,
+        ChangeSchema,
         Warning,
         Error,
         None
@@ -30,4 +34,5 @@
         Mandatory,
         Error
     }
+
 }

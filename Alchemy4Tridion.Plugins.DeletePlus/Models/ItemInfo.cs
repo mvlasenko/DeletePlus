@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using Alchemy4Tridion.Plugins.DeletePlus.Helpers;
+﻿using Alchemy4Tridion.Plugins.DeletePlus.Helpers;
 using Tridion.ContentManager.CoreService.Client;
 
 namespace Alchemy4Tridion.Plugins.DeletePlus.Models
@@ -58,12 +57,5 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Models
             }
         }
 
-        public List<ItemInfo> ChildItems { get; set; }
-
-        public ItemInfo Parent { get; set; }
-
-        public bool IsSelected { get; set; }
-
-        public bool IsExpanded { get; set; }
     }
 }

@@ -39,7 +39,7 @@
     margin-bottom: 2em;
     padding: 0;
     position: relative;
-    height:300px;
+    height:320px;
     display:none;
     padding:10px;    
     overflow: auto;
@@ -63,8 +63,14 @@
 }
 .results{
     width: 100%;
-    border: 1px solid #b8c1cc;
-    position: relative;
+    margin: 0;
+    padding: 0;
+    border-spacing: 0;
+    border-collapse: separate;
+    border-top: 1px solid #b8c1cc;
+    border-left: 1px solid #b8c1cc;
+    border-right: 0;
+    border-bottom: 0;
 }
 .results .headings{
     background-color: #EDEDED;
@@ -72,55 +78,64 @@
     font-weight: normal;
     text-align: left;
 }
-.results .headings div{
+.results .headings th{
+    border-top: 0;
+    border-left: 0;
+    border-right: 1px solid #aaa;
     border-bottom: 1px solid #aaa;
 }
-.results .headings div:last-child {
-    border-right: none;
-}
-.results .headings div, .results .item div{
-    display:inline-block;
-    box-sizing:border-box;    
-    vertical-align: middle;
-    white-space: nowrap;
-    overflow:hidden;
-}
-.results .headings .icon{
-    width:18px;
+.results td{
+    border-top: 0;
+    border-left: 0;
     border-right: 1px solid #aaa;
+    border-bottom: 1px solid #aaa;
 }
-.results .headings .id, .results .headings .path{
-    border-left: 1px solid #aaa;
-}
-.item .icon{
-    width:16px;
-    height:16px;
-    margin:1px;
-}
-.results .icon{
-    position:absolute;
-}
+
 .results .item.disabled {
-    border-bottom: 1px solid #FFF;
     color: #AAA;
     text-shadow: 1px 1px #FFF;
     cursor: default;
 }
+
 .name {
-    width:30%;
-    padding-left:21px;
+    width:50%;
+    height:16px;
 }
 .path {
-    width:60%;
+    width:350px;
+    height:16px;
     padding-left: 2px;
+    vertical-align: middle;
+    white-space: nowrap;
+    overflow:hidden;
 }
 .operation{
-    width:10%;
+    width:55px;
+    height:16px;
     padding-left:2px;
     text-align: center;
 }
+
+div .treeicon{
+    height:16px;
+    display:inline-block;
+    vertical-align: middle;
+}
+div .icon{
+    width:16px;
+    height:16px;
+    margin:1px;
+    display:inline-block;
+    vertical-align: middle;
+}
+div .title {
+    height:16px;
+    display:inline-block;
+    vertical-align: middle;
+}
+
 .controls{
-    padding-left: 20px;
+    padding: 10px;
 }
 
 .button {

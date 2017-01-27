@@ -47,7 +47,7 @@ Alchemy.command("${PluginName}", "DeletePlus", {
         // Sets the url of a popup window, passing through params for the ID of the selected folder/item
         var url = "${ViewsUrl}DeletePlusPopup.aspx?uri=" + itemId + "&title=" + title;
         // Creates a popup with the above URL
-        var popup = $popup.create(url, "menubar=no,location=no,resizable=no,scrollbars=no,status=no,width=700,height=450,top=10,left=10", null);
+        var popup = $popup.create(url, "menubar=no,location=no,resizable=no,scrollbars=no,status=no,width=800,height=450,top=10,left=10", null);
         popup.open();
     }
 

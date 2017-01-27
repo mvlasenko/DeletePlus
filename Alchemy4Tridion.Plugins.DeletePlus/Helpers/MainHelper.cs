@@ -370,25 +370,25 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
 
         #region Tridion delete
 
-        public static void Delete(SessionAwareCoreServiceClient client, string tcmItem, bool delete, bool unpublish, List<ResultInfo> results)
+        public static void Delete(SessionAwareCoreServiceClient client, string tcmItem, bool delete, bool unpublish, bool unlink, List<ResultInfo> results)
         {
             ItemType itemType = GetItemType(tcmItem);
 
             if (itemType == ItemType.Publication)
             {
-                DeletePublication(client, tcmItem, delete, unpublish, results);
+                DeletePublication(client, tcmItem, delete, unpublish, unlink, results);
             }
             else if (itemType == ItemType.Folder || itemType == ItemType.StructureGroup || itemType == ItemType.Category)
             {
-                DeleteFolderOrStructureGroup(client, tcmItem, delete, unpublish, results);
+                DeleteFolderOrStructureGroup(client, tcmItem, delete, unpublish, unlink, results);
             }
             else
             {
-                DeleteTridionObject(client, tcmItem, delete, unpublish, results);
+                DeleteTridionObject(client, tcmItem, delete, unpublish, unlink, results);
             }
         }
 
-        private static LinkStatus RemoveDependency(SessionAwareCoreServiceClient client, string tcmItem, string tcmDependentItem, bool delete, List<ResultInfo> results)
+        private static LinkStatus RemoveDependency(SessionAwareCoreServiceClient client, string tcmItem, string tcmDependentItem, bool delete, List<ResultInfo> results, int level = 0)
         {
             if (results.Any(x => x.Status == Status.Error))
                 return LinkStatus.Error;
@@ -399,13 +399,17 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                 {
                     Message = "Delete stack exceeds 50 items. Please select other item",
                     Item = new ItemInfo { Title = "Delete stack exceeds 50 items" },
-                    Status = Status.Error
+                    Status = Status.Error,
+                    Level = level,
+                    DependentItemTcmId = tcmDependentItem
                 });
 
                 return LinkStatus.Error;
             }
 
             ResultInfo result = new ResultInfo();
+            result.Level = level;
+            result.DependentItemTcmId = tcmDependentItem;
 
             ItemType itemType = GetItemType(tcmItem);
             ItemType dependentItemType = GetItemType(tcmDependentItem);
@@ -501,7 +505,7 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                     //component link is mandatory - schema field change
                     if (status == LinkStatus.Mandatory)
                     {
-                        RemoveSchemaMandatoryLinkFields(client, itemData, tcmDependentItem, results);
+                        RemoveSchemaMandatoryLinkFields(client, itemData, tcmDependentItem, results, level);
                     }
 
                     status = RemoveLinkFromComponent(client, tcmItem, tcmDependentItem, out stackTraceMessage);
@@ -514,7 +518,7 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                     //component link is mandatory - schema field change
                     if (status == LinkStatus.Mandatory)
                     {
-                        RemoveSchemaMandatoryLinkFields(client, itemData, tcmDependentItem, results);
+                        RemoveSchemaMandatoryLinkFields(client, itemData, tcmDependentItem, results, level);
                     }
 
                     status = RemoveLinkFromMetadata(client, tcmItem, tcmDependentItem, out stackTraceMessage);
@@ -588,7 +592,7 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                     //component link is mandatory - schema field needs to be changed
                     if (status == LinkStatus.Mandatory)
                     {
-                        CheckRemoveSchemaMandatoryLinkFields(client, itemData, tcmDependentItem, results);
+                        CheckRemoveSchemaMandatoryLinkFields(client, itemData, tcmDependentItem, results, level);
                         status = LinkStatus.Found;
                     }
                 }
@@ -600,14 +604,14 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                     //component link is mandatory - schema field needs to be changed
                     if (status == LinkStatus.Mandatory)
                     {
-                        CheckRemoveSchemaMandatoryLinkFields(client, itemData, tcmDependentItem, results);
+                        CheckRemoveSchemaMandatoryLinkFields(client, itemData, tcmDependentItem, results, level);
                         status = LinkStatus.Found;
                     }
                 }
 
                 if (status == LinkStatus.Found)
                 {
-                    result.Status = Status.Info;
+                    result.Status = Status.Unlink;
                     result.Message = string.Format("Remove item \"{1}\" from \"{0}\".", itemData.GetWebDav(), dependentItemData == null ? tcmDependentItem : dependentItemData.GetWebDav());
                 }
             }
@@ -619,7 +623,7 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                 result.Message = string.Format("Not able to unlink \"{1}\" from \"{0}\".", itemData.GetWebDav(), dependentItemData == null ? tcmDependentItem : dependentItemData.GetWebDav());
             }
 
-            if(status != LinkStatus.NotFound)
+            if (status != LinkStatus.NotFound)
                 results.Add(result);
 
             return status;
@@ -1558,7 +1562,7 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
             return CheckRemoveLinkFromValues(client, XElement.Parse(item.Metadata), metadataSchema.NamespaceUri, metadataSchemaFields, tcmLink);
         }
 
-        private static void RemoveSchemaMandatoryLinkFields(SessionAwareCoreServiceClient client, RepositoryLocalObjectData itemData, string tcmDependentItem, List<ResultInfo> results)
+        private static void RemoveSchemaMandatoryLinkFields(SessionAwareCoreServiceClient client, RepositoryLocalObjectData itemData, string tcmDependentItem, List<ResultInfo> results, int level = 0)
         {
             string schemaUri = string.Empty;
             XElement xml = null;
@@ -1622,7 +1626,9 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                     {
                         Status = Status.Success,
                         Item = innerSchemaData.ToItem(),
-                        Message = string.Format("Make non-mandatory field \"{0}\" in \"{1}\".", field.Name, innerSchemaData.GetWebDav())
+                        Message = string.Format("Make non-mandatory field \"{0}\" in \"{1}\".", field.Name, innerSchemaData.GetWebDav()),
+                        Level = level,
+                        DependentItemTcmId = tcmDependentItem
                     });
                 }
                 catch (Exception ex)
@@ -1632,13 +1638,15 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                         Message = string.Format("Error removing folder linked schema for \"{0}\". Error message \"{1}\"", itemData.GetWebDav(), ex.Message),
                         Item = itemData.ToItem(),
                         Status = Status.Error,
-                        StackTrace = ex.StackTrace
+                        StackTrace = ex.StackTrace,
+                        Level = level,
+                        DependentItemTcmId = tcmDependentItem
                     });
                 }
             }
         }
 
-        private static void CheckRemoveSchemaMandatoryLinkFields(SessionAwareCoreServiceClient client, RepositoryLocalObjectData itemData, string tcmDependentItem, List<ResultInfo> results)
+        private static void CheckRemoveSchemaMandatoryLinkFields(SessionAwareCoreServiceClient client, RepositoryLocalObjectData itemData, string tcmDependentItem, List<ResultInfo> results, int level = 0)
         {
             string schemaUri = string.Empty;
             XElement xml = null;
@@ -1671,9 +1679,11 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
 
                 results.Add(new ResultInfo
                 {
-                    Status = Status.Info,
+                    Status = Status.ChangeSchema,
                     Item = innerSchemaData.ToItem(),
-                    Message = string.Format("Make non-mandatory field \"{0}\" in \"{1}\".", field.Name, innerSchemaData.GetWebDav())
+                    Message = string.Format("Make non-mandatory field \"{0}\" in \"{1}\".", field.Name, innerSchemaData.GetWebDav()),
+                    Level = level,
+                    DependentItemTcmId = tcmDependentItem
                 });
             }
         }
@@ -1819,7 +1829,7 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
             return status;
         }
 
-        public static void DeleteTridionObject(SessionAwareCoreServiceClient client, string tcmItem, bool delete, bool unpublish, List<ResultInfo> results, string parentTcmId = "", bool currentVersion = true, int level = 0)
+        public static void DeleteTridionObject(SessionAwareCoreServiceClient client, string tcmItem, bool delete, bool unpublish, bool unlink, List<ResultInfo> results, string tcmDependentItem = "", bool currentVersion = true, int level = 0)
         {
             if (tcmItem.StartsWith("tcm:0-"))
                 return;
@@ -1833,7 +1843,9 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                 {
                     Message = "Delete stack exceeds 50 items. Please select other item",
                     Item = new ItemInfo { Title = "Delete stack exceeds 50 items" },
-                    Status = Status.Error
+                    Status = Status.Error,
+                    Level = level,
+                    DependentItemTcmId = tcmDependentItem
                 });
 
                 return;
@@ -1850,7 +1862,9 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                 {
                     Message = string.Format("Recoursion level is bigger than 3. Try delete item  manually \"{0}\"", itemData.GetWebDav()),
                     Item = itemData.ToItem(),
-                    Status = Status.Error
+                    Status = Status.Error,
+                    Level = level,
+                    DependentItemTcmId = tcmDependentItem
                 });
 
                 return;
@@ -1878,25 +1892,28 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                     if (usingItem.GetId() == tcmItem.GetId())
                         continue;
 
-                    LinkStatus status = RemoveDependency(client, usingItem, tcmItem, delete, results);
-                    if (status == LinkStatus.Error)
+                    //try to unlink objects
+                    if (unlink)
                     {
-                        return;
+                        LinkStatus status = RemoveDependency(client, usingItem, tcmItem, delete, results, level + 1);
+                        if (status == LinkStatus.Error)
+                            return;
+
+                        if (status == LinkStatus.Found)
+                            continue;
                     }
 
-                    //not able to unlink objects - delete whole parent object
-                    if (status != LinkStatus.Found)
-                    {
-                        ItemType usingItemType = GetItemType(usingItem);
+                    //not wish or not able to unlink objects - delete whole parent object
 
-                        if (usingItemType == ItemType.Folder || usingItemType == ItemType.StructureGroup || usingItemType == ItemType.Category)
-                        {
-                            DeleteFolderOrStructureGroup(client, usingItem, delete, unpublish, results, level + 1);
-                        }
-                        else
-                        {
-                            DeleteTridionObject(client, usingItem, delete, unpublish, results, tcmItem, usingCurrentItems.Any(x => x == usingItem), level + 1);
-                        }
+                    ItemType usingItemType = GetItemType(usingItem);
+
+                    if (usingItemType == ItemType.Folder || usingItemType == ItemType.StructureGroup || usingItemType == ItemType.Category)
+                    {
+                        DeleteFolderOrStructureGroup(client, usingItem, delete, unpublish, unlink, results, tcmItem, level + 1);
+                    }
+                    else
+                    {
+                        DeleteTridionObject(client, usingItem, delete, unpublish, unlink, results, tcmItem, usingCurrentItems.Any(x => x == usingItem), level + 1);
                     }
                 }
             }
@@ -1915,7 +1932,9 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                         {
                             Message = string.Format("Unpublishing item \"{0}\" from target \"{1}\"...", publishedItem.Value.Path, publishedItem.Key),
                             Item = publishedItem.Value,
-                            Status = Status.Unpublish
+                            Status = Status.Unpublish,
+                            Level = level,
+                            DependentItemTcmId = tcmDependentItem
                         });
                     }
                 }
@@ -1933,7 +1952,9 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                         {
                             Message = string.Format("Unlocalized item \"{0}\"", itemData.GetWebDav()),
                             Item = itemData.ToItem(),
-                            Status = Status.Success
+                            Status = Status.Success,
+                            Level = level,
+                            DependentItemTcmId = tcmDependentItem
                         });
                     }
                     catch (Exception ex)
@@ -1943,7 +1964,9 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                             Message = string.Format("Error unlocalizing item \"{0}\". Error message \"{1}\"", itemData.GetWebDav(), ex.Message),
                             Item = itemData.ToItem(),
                             Status = Status.Error,
-                            StackTrace = ex.StackTrace
+                            StackTrace = ex.StackTrace,
+                            Level = level,
+                            DependentItemTcmId = tcmDependentItem
                         });
                     }
                 }
@@ -1962,14 +1985,16 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                 {
                     //remove used versions
                     string stackTraceMessage;
-                    LinkStatus status = RemoveHistory(client, tcmItem, parentTcmId, out stackTraceMessage);
+                    LinkStatus status = RemoveHistory(client, tcmItem, tcmDependentItem, out stackTraceMessage);
                     if (status == LinkStatus.Found)
                     {
                         results.Add(new ResultInfo
                         {
                             Message = string.Format("Removed history for item \"{0}\"", itemData.GetWebDav()),
                             Item = itemData.ToItem(),
-                            Status = Status.Success
+                            Status = Status.Success,
+                            Level = level,
+                            DependentItemTcmId = tcmDependentItem
                         });
                     }
                     else
@@ -1979,7 +2004,9 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                             Message = string.Format("Error removing history from item \"{0}\"", itemData.GetWebDav()),
                             Item = itemData.ToItem(),
                             Status = Status.Error,
-                            StackTrace = stackTraceMessage
+                            StackTrace = stackTraceMessage,
+                            Level = level,
+                            DependentItemTcmId = tcmDependentItem
                         });
                     }
                 }
@@ -1994,7 +2021,9 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                         {
                             Message = string.Format("Deleteed item \"{0}\"", itemData.GetWebDav()),
                             Item = itemData.ToItem(),
-                            Status = Status.Delete
+                            Status = Status.Delete,
+                            Level = level,
+                            DependentItemTcmId = tcmDependentItem
                         });
                     }
                     catch (Exception ex)
@@ -2004,14 +2033,16 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                             Message = string.Format("Error deleting item \"{0}\". Error message \"{1}\"", itemData.GetWebDav(), ex.Message),
                             Item = itemData.ToItem(),
                             Status = Status.Error,
-                            StackTrace = ex.StackTrace
+                            StackTrace = ex.StackTrace,
+                            Level = level,
+                            DependentItemTcmId = tcmDependentItem
                         });
                     }
                 }
             }
             else
             {
-                //item is published - not possible to delete - WARNING
+                //item is published - not possible to delete - unpublish first
                 if (IsPublished(client, tcmItem))
                 {
                     foreach (KeyValuePair<string, ItemInfo> publishedItem in GetPublishedItems(client, itemData.ToItem()))
@@ -2020,7 +2051,9 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                         {
                             Message = string.Format("Unpublish item \"{0}\" from target \"{1}\"", publishedItem.Value.Path, publishedItem.Key),
                             Item = publishedItem.Value,
-                            Status = Status.Warning
+                            Status = Status.Unpublish,
+                            Level = level,
+                            DependentItemTcmId = tcmDependentItem
                         });
                     }
                 }
@@ -2031,7 +2064,9 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                     {
                         Message = string.Format("Unlocalize item \"{0}\"", itemData.GetWebDav()),
                         Item = itemData.ToItem(),
-                        Status = Status.Info
+                        Status = Status.Unlocalize,
+                        Level = level,
+                        DependentItemTcmId = tcmDependentItem
                     });
                 }
 
@@ -2041,7 +2076,9 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                     {
                         Message = string.Format("Remove old versions of item \"{0}\"", itemData.GetWebDav()),
                         Item = itemData.ToItem(),
-                        Status = Status.Info
+                        Status = Status.ChangeHistory,
+                        Level = level,
+                        DependentItemTcmId = tcmDependentItem
                     });
                 }
                 else
@@ -2050,13 +2087,15 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                     {
                         Message = string.Format("Delete item \"{0}\"", itemData.GetWebDav()),
                         Item = itemData.ToItem(),
-                        Status = Status.Delete
+                        Status = Status.Delete,
+                        Level = level,
+                        DependentItemTcmId = tcmDependentItem
                     });
                 }
             }
         }
 
-        public static void DeleteFolderOrStructureGroup(SessionAwareCoreServiceClient client, string tcmFolder, bool delete, bool unpublish, List<ResultInfo> results, int level = 0)
+        public static void DeleteFolderOrStructureGroup(SessionAwareCoreServiceClient client, string tcmFolder, bool delete, bool unpublish, bool unlink, List<ResultInfo> results, string tcmDependentItem = "", int level = 0)
         {
             if (results.Any(x => x.Status == Status.Error))
                 return;
@@ -2067,7 +2106,9 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                 {
                     Message = "Delete stack exceeds 50 items. Please select other item",
                     Item = new ItemInfo { Title = "Delete stack exceeds 50 items" },
-                    Status = Status.Error
+                    Status = Status.Error,
+                    Level = level,
+                    DependentItemTcmId = tcmDependentItem
                 });
 
                 return;
@@ -2081,7 +2122,9 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                 {
                     Message = string.Format("Recoursion level is bigger than 3. Try delete item  manually \"{0}\"", itemData.GetWebDav()),
                     Item = itemData.ToItem(),
-                    Status = Status.Error
+                    Status = Status.Error,
+                    Level = level,
+                    DependentItemTcmId = tcmDependentItem
                 });
 
                 return;
@@ -2099,12 +2142,12 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                 {
                     if (childItem.ItemType == ItemType.Folder || childItem.ItemType == ItemType.StructureGroup)
                     {
-                        DeleteFolderOrStructureGroup(client, childItem.TcmId, delete, unpublish, results, level + 1);
+                        DeleteFolderOrStructureGroup(client, childItem.TcmId, delete, unpublish, unlink, results, tcmFolder, level + 1);
                     }
                     else
                     {
                         if (ExistsItem(client, childItem.TcmId))
-                            DeleteTridionObject(client, childItem.TcmId, delete, unpublish, results, tcmFolder, true, level);
+                            DeleteTridionObject(client, childItem.TcmId, delete, unpublish, unlink, results, tcmFolder, true, level + 1);
                     }
 
                     if (results.Any(x => x.Status == Status.Error))
@@ -2112,10 +2155,10 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                 }
             }
 
-            DeleteTridionObject(client, tcmFolder, delete, unpublish, results, string.Empty, true, level);
+            DeleteTridionObject(client, tcmFolder, delete, unpublish, unlink, results, tcmFolder, true, level);
         }
 
-        public static void DeletePublication(SessionAwareCoreServiceClient client, string tcmPublication, bool delete, bool unpublish, List<ResultInfo> results, int level = 0)
+        public static void DeletePublication(SessionAwareCoreServiceClient client, string tcmPublication, bool delete, bool unpublish, bool unlink, List<ResultInfo> results, string tcmDependentItem = "", int level = 0)
         {
             if (results.Any(x => x.Status == Status.Error))
                 return;
@@ -2126,7 +2169,9 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                 {
                     Message = "Delete stack exceeds 50 items. Please select other item",
                     Item = new ItemInfo { Title = "Delete stack exceeds 50 items" },
-                    Status = Status.Error
+                    Status = Status.Error,
+                    Level = level,
+                    DependentItemTcmId = tcmDependentItem
                 });
 
                 return;
@@ -2140,7 +2185,9 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                 {
                     Message = string.Format("Recoursion level is bigger than 3. Try delete publication  manually \"{0}\"", publication.Title),
                     Item = publication.ToItem(),
-                    Status = Status.Error
+                    Status = Status.Error,
+                    Level = level,
+                    DependentItemTcmId = tcmDependentItem
                 });
 
                 return;
@@ -2153,11 +2200,11 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                 ItemType itemType = GetItemType(usingItem);
                 if (itemType == ItemType.Publication)
                 {
-                    DeletePublication(client, usingItem, delete, unpublish, results, level + 1);
+                    DeletePublication(client, usingItem, delete, unpublish, unlink, results, tcmPublication, level + 1);
                 }
                 else
                 {
-                    DeleteTridionObject(client, usingItem, delete, unpublish, results, string.Empty, true, level + 1);
+                    DeleteTridionObject(client, usingItem, delete, unpublish, unlink, results, tcmPublication, true, level + 1);
                 }
             }
 
@@ -2165,7 +2212,7 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
             List<ItemInfo> pulishedItems = GetItemsByPublication(client, tcmPublication, true).Where(x => x.IsPublished).ToList();
             foreach (ItemInfo publishedItem in pulishedItems)
             {
-                DeleteTridionObject(client, publishedItem.TcmId, delete, unpublish, results, string.Empty, true, level);
+                DeleteTridionObject(client, publishedItem.TcmId, delete, unpublish, unlink, results, tcmPublication, true, level + 1);
             }
 
             try
@@ -2179,7 +2226,9 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                     {
                         Message = string.Format("Deleted publication \"{0}\"", publication.Title),
                         Item = publication.ToItem(),
-                        Status = Status.Delete
+                        Status = Status.Delete,
+                        Level = level,
+                        DependentItemTcmId = tcmDependentItem
                     });
                 }
                 else
@@ -2188,7 +2237,9 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                     {
                         Message = string.Format("Delete publication \"{0}\"", publication.Title),
                         Item = publication.ToItem(),
-                        Status = Status.Delete
+                        Status = Status.Delete,
+                        Level = level,
+                        DependentItemTcmId = tcmDependentItem
                     });
                 }
             }
@@ -2199,7 +2250,9 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                     Message = string.Format("Error deleting publication \"{0}\". Error message \"{1}\"", publication.Title, ex.Message),
                     Item = publication.ToItem(),
                     Status = Status.Error,
-                    StackTrace = ex.StackTrace
+                    StackTrace = ex.StackTrace,
+                    Level = level,
+                    DependentItemTcmId = tcmDependentItem
                 });
             }
         }

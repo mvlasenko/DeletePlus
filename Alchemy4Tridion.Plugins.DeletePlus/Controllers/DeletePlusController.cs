@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Web.Http;
 using Alchemy4Tridion.Plugins.DeletePlus.Helpers;
 using Alchemy4Tridion.Plugins.DeletePlus.Models;
@@ -24,17 +25,20 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Controllers
     public class DeletePlusController : AlchemyApiController
     {
         [HttpGet]
-        [Route("ItemsToDelete/{tcmItem}")]
-        public string GetItemsToDelete(string tcmItem)
+        [Route("ItemsToDelete/{tcmItem}/{unlink}")]
+        public string GetItemsToDelete(string tcmItem, bool unlink)
         {
             try
             {
                 // Start building up a string of html to return, including headings for the table that the html will represent.
-                string html = "<div class=\"usingItems results\">";
-                html += CreateItemsHeading();
+                string html = "<table class=\"usingItems results\">";
 
                 List<ResultInfo> results  = new List<ResultInfo>();
-                MainHelper.Delete(this.Client, "tcm:" + tcmItem, false, false, results);
+                MainHelper.Delete(this.Client, "tcm:" + tcmItem, false, false, unlink, results);
+
+                SetTreeIcons(results);
+
+                html += CreateItemsHeading();
 
                 // Iterate over all items returned by the above filtered list returned.
                 foreach (ResultInfo result in results)
@@ -43,7 +47,7 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Controllers
                 }
 
                 // Close the div we opened above
-                html += "</div>";
+                html += "</table>";
 
                 // Explicitly abort to ensure there are no memory leaks.
                 this.Client.Abort();
@@ -68,18 +72,21 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Controllers
         }
 
         [HttpGet]
-        [Route("DeleteItems/{tcmItem}")]
-        public string GetDeletedItems(string tcmItem)
+        [Route("DeleteItems/{tcmItem}/{unlink}")]
+        public string GetDeletedItems(string tcmItem, bool unlink)
         {
             try
             {
 
                 // Start building up a string of html to return, including headings for the table that the html will represent.
-                string html = "<div class=\"usingItems results\">";
-                html += CreateItemsHeading();
+                string html = "<table class=\"usingItems results\">";
 
                 List<ResultInfo> results = new List<ResultInfo>();
-                MainHelper.Delete(this.Client, "tcm:" + tcmItem, true, false, results);
+                MainHelper.Delete(this.Client, "tcm:" + tcmItem, true, false, unlink, results);
+
+                SetTreeIcons(results);
+
+                html += CreateItemsHeading();
 
                 // Iterate over all items returned by the above filtered list returned.
                 foreach (ResultInfo result in results)
@@ -88,7 +95,7 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Controllers
                 }
 
                 // Close the div we opened above
-                html += "</div>";
+                html += "</table>";
 
                 // Explicitly abort to ensure there are no memory leaks.
                 this.Client.Abort();
@@ -113,18 +120,21 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Controllers
         }
 
         [HttpGet]
-        [Route("UnpublishingItems/{tcmItem}")]
-        public string GetUnpublishingItems(string tcmItem)
+        [Route("UnpublishingItems/{tcmItem}/{unlink}")]
+        public string GetUnpublishingItems(string tcmItem, bool unlink)
         {
             try
             {
 
                 // Start building up a string of html to return, including headings for the table that the html will represent.
-                string html = "<div class=\"usingItems results\">";
-                html += CreateItemsHeading();
-
+                string html = "<table class=\"usingItems results\">";
+                
                 List<ResultInfo> results = new List<ResultInfo>();
-                MainHelper.Delete(this.Client, "tcm:" + tcmItem, true, true, results);
+                MainHelper.Delete(this.Client, "tcm:" + tcmItem, true, true, unlink, results);
+
+                SetTreeIcons(results);
+
+                html += CreateItemsHeading();
 
                 // Iterate over all items returned by the above filtered list returned.
                 foreach (ResultInfo result in results)
@@ -133,7 +143,7 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Controllers
                 }
 
                 // Close the div we opened above
-                html += "</div>";
+                html += "</table>";
 
                 // Explicitly abort to ensure there are no memory leaks.
                 this.Client.Abort();
@@ -159,12 +169,11 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Controllers
 
         private string CreateItemsHeading()
         {
-            string html = "<div class=\"headings\">";
-            html += "<div class=\"icon\">&nbsp</div>";
-            html += "<div class=\"name\">Name</div>";
-            html += "<div class=\"path\">Path</div>";
-            html += "<div class=\"operation\">Operation</div>";
-            html += "</div>";
+            string html = "<tr class=\"headings\">";
+            html += "<th class=\"name\" style='padding-left: 18px !important;'>Name</th>";
+            html += "<th class=\"path\">Path</th>";
+            html += "<th class=\"operation\">Operation</th>";
+            html += "</tr>";
 
             return html;
         }
@@ -174,18 +183,29 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Controllers
             string html = "";
             if (disabled)
             {
-                html += "<div class=\"item disabled\">";
+                html += "<tr class=\"item disabled\">";
             }
             else
             {
-                html += string.Format("<div class=\"item\" id=\"{0}\">", result.TcmId);
+                html += string.Format("<tr class=\"item\" id=\"{0}\">", result.TcmId);
             }
 
-            html += string.Format("<div class=\"icon\" style=\"background-image: url(/WebUI/Editors/CME/Themes/Carbon2/icon_v7.1.0.66.627_.png?name={0}&size=16)\"></div>", result.Icon);
-            html += string.Format("<div class=\"name\" title=\"{0} ({1})\">{0}</div>", result.Title, result.TcmId);
-            html += string.Format("<div class=\"path\">{0}</div>", result.Path);
-            html += string.Format("<div class=\"operation\"><img src=\"/Alchemy/Plugins/Delete_Plus/assets/img/{0}\" title=\"{1}\"/></div>", result.StatusIcon, result.Message.Replace("\"", "'"));
-            html += "</div>";
+            string treeIcons = "";
+
+            for (int i = 0; i < result.TreeIconLevel; i++)
+            {
+                treeIcons += "<img src=\"/Alchemy/Plugins/Delete_Plus/assets/img/tree_vertical.png\" />";
+            }
+
+            if (!string.IsNullOrEmpty(result.TreeIcon))
+            {
+                treeIcons += string.Format("<img src=\"/Alchemy/Plugins/Delete_Plus/assets/img/{0}\" />", result.TreeIcon);
+            }
+
+            html += string.Format("<td class=\"name\" title=\"{0} ({1})\"><div class=\"treeicon\" style=\"width: {3}px; text-align: right;\">{4}</div><div class=\"icon\" style=\"background-image: url(/WebUI/Editors/CME/Themes/Carbon2/Images/Icons/{2}.16x16.png)\"></div><div class=\"title\">{0}</div></td>", result.Title, result.TcmId, result.Icon, result.Level * 16, treeIcons);
+            html += string.Format("<td class=\"path\">{0}</td>", result.Path);
+            html += string.Format("<td class=\"operation\"><img src=\"/Alchemy/Plugins/Delete_Plus/assets/img/{0}\" title=\"{1}\"/></td>", result.StatusIcon, result.Message.Replace("\"", "'"));
+            html += "</tr>";
             return html;
         }
 
@@ -194,6 +214,31 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Controllers
             string html = "<h1>Error</h1>";
             html += "<p>Look event log for details</p>";
             return html;
+        }
+
+        private void SetTreeIcons(List<ResultInfo> results)
+        {
+            int i = 0;
+            foreach (ResultInfo result in results)
+            {
+                List<ResultInfo> childResults = results.Where(x => x.DependentItemTcmId == result.TcmId).ToList();
+                int j = 0;
+                foreach (ResultInfo childResult in childResults)
+                {
+                    childResult.TreeIcon = j == 0 ? "tree_top.png" : "tree_middle.png";
+                    j++;
+                }
+
+                for (int j1 = 0; j1 < i; j1++)
+                {
+                    if (results[j1].Level < result.Level)
+                    {
+                        result.TreeIconLevel = 1;
+                    }
+                }
+
+                i++;
+            }
         }
 
     }

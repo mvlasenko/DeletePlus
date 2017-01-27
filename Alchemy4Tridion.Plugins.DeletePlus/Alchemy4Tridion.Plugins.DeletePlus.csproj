@@ -95,6 +95,8 @@
     <Content Include="Static\DeletePlusPopup.aspx">
       <SubType>ASPXCodeBehind</SubType>
     </Content>
+    <Content Include="Static\Images\change_history.16x16.png" />
+    <Content Include="Static\Images\change_schema.16x16.png" />
     <Content Include="Static\Images\delete-plus.16x16.png" />
     <Content Include="Static\Images\delete-plus.24x24.png" />
     <Content Include="Static\Images\delete-plus.32x32.png" />
@@ -103,8 +105,13 @@
     <Content Include="Static\Images\error.png" />
     <Content Include="Static\Images\favicon.png" />
     <Content Include="Static\Images\info.png" />
-    <Content Include="Static\Images\publishing-queue.16x16.png" />
     <Content Include="Static\Images\success.png" />
+    <Content Include="Static\Images\tree_middle.png" />
+    <Content Include="Static\Images\tree_top.png" />
+    <Content Include="Static\Images\tree_vertical.png" />
+    <Content Include="Static\Images\unlink.16x16.png" />
+    <Content Include="Static\Images\unlocalize.16x16.png" />
+    <Content Include="Static\Images\unpublish.16x16.png" />
     <Content Include="Static\Images\warning.png" />
     <Content Include="Static\Scripts\DeletePlusCommand.js" />
     <Content Include="Static\Scripts\DeletePlusPopup.js" />

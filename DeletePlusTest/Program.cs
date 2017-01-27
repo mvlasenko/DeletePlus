@@ -21,7 +21,7 @@ namespace DeletePlusTest
             //var list = MainHelper.GetPublications(client);
 
             List<ResultInfo> results = new List<ResultInfo>();
-            MainHelper.Delete(client, tcmItem, true, false, results);
+            MainHelper.Delete(client, tcmItem, true, false, false, results);
 
             string html = "";
 

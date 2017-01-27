@@ -14,21 +14,21 @@
     var title = location.href.substring(url.indexOf("title=") + 6, url.indexOf("#")).replace(/\%20/g, ' ');
 
     // On page load I display the items not in use within the folder defined by tcm.
-    loadItemsToDelete(tcm, title);
+    loadItemsToDelete(tcm, title, true);
 
     /**
      * Takes a TCM ID for a Tridion item and retrieves the a list of the dependent items
      */
-    function loadItemsToDelete(tcmInput, title) {
+    function loadItemsToDelete(tcmInput, title, unlink) {
 
         //disable buttons
-        $j("#delete_item").removeClass("enabled");
-        $j("#delete_item").addClass("disabled");
-        $j("#delete_item").unbind();
+        $j("#delete_all").removeClass("enabled");
+        $j("#delete_all").addClass("disabled");
+        $j("#delete_all").unbind();
 
-        $j("#unpublish_item").removeClass("enabled");
-        $j("#unpublish_item").addClass("disabled");
-        $j("#unpublish_item").unbind();
+        $j("#unpublish_all").removeClass("enabled");
+        $j("#unpublish_all").addClass("disabled");
+        $j("#unpublish_all").unbind();
 
         $j("#go_to_item_location").removeClass("enabled");
         $j("#go_to_item_location").addClass("disabled");
@@ -46,33 +46,32 @@
         $j("#progBar").show();
 
         // This is the call to my controller where the core service code is used get the list of items
-        Alchemy.Plugins["${PluginName}"].Api.DeletePlusService.getItemsToDelete(tcmInput).success(function (items) {
+        Alchemy.Plugins["${PluginName}"].Api.DeletePlusService.getItemsToDelete(tcmInput, unlink).success(function (items) {
 
             //disable progress bar
             $j("#progBar").hide();
 
-            // Update the tab title
-            $j(".tabs>div.active").empty();
-            $j(".tabs>div.active").append(title);
+            // Update the title
+            document.title = title + " - Delete Plus";
 
             //show list of items
             $j(".tab-body.active").empty();
             $j(".tab-body.active").append(items);
 
             //detect if error happened
-            var bSuccess = (items.lastIndexOf("error.png") === -1) && (items.lastIndexOf("warning.png") === -1) && (items.lastIndexOf("Look event log for details") === -1);
-            var bNeedUnpublish = (items.lastIndexOf("warning.png") > -1);
+            var bSuccess = (items.lastIndexOf("error.png") === -1) && (items.lastIndexOf("unpublish.16x16.png") === -1) && (items.lastIndexOf("Look event log for details") === -1);
+            var bNeedUnpublish = (items.lastIndexOf("unpublish.16x16.png") > -1);
 
             //change buttons visibility
 
             if (bSuccess) {
-                $j("#delete_item").removeClass("disabled");
-                $j("#delete_item").addClass("enabled");
+                $j("#delete_all").removeClass("disabled");
+                $j("#delete_all").addClass("enabled");
             }
 
             if (bNeedUnpublish) {
-                $j("#unpublish_item").removeClass("disabled");
-                $j("#unpublish_item").addClass("enabled");
+                $j("#unpublish_all").removeClass("disabled");
+                $j("#unpublish_all").addClass("enabled");
             }
 
             $j("#refresh_items").removeClass("disabled");
@@ -84,23 +83,31 @@
             //register button handlers
 
             if (bSuccess) {
-                $j("#delete_item.enabled").click(function () {
-                    forceDelete(tcm);
+                $j("#delete_all.enabled").click(function () {
+                    forceDelete(tcm, $j("#unlink").prop("checked"));
                 });
             }
 
             if (bNeedUnpublish) {
-                $j("#unpublish_item.enabled").click(function () {
-                    forceUnpublish(tcm);
+                $j("#unpublish_all.enabled").click(function () {
+                    forceUnpublish(tcm, $j("#unlink").prop("checked"));
                 });
             }
 
             $j("#refresh_items.enabled").click(function () {
-                loadItemsToDelete(tcm, title);
+                loadItemsToDelete(tcm, title, $j("#unlink").prop("checked"));
             });
 
             $j("#close_window.enabled").click(function () {
                 closeWindow();
+            });
+
+            $j("#unlink").unbind();
+            $j("#unlink").click(function () {
+                $j("#delete_all").removeClass("enabled");
+                $j("#delete_all").addClass("disabled");
+                $j("#unpublish_all").removeClass("enabled");
+                $j("#unpublish_all").addClass("disabled");
             });
 
             setupForItemClicked();
@@ -116,16 +123,16 @@
         });
     }
 
-    function forceDelete(tcmInput) {
+    function forceDelete(tcmInput, unlink) {
         
         //disable buttons
-        $j("#delete_item").removeClass("enabled");
-        $j("#delete_item").addClass("disabled");
-        $j("#delete_item").unbind();
+        $j("#delete_all").removeClass("enabled");
+        $j("#delete_all").addClass("disabled");
+        $j("#delete_all").unbind();
 
-        $j("#unpublish_item").removeClass("enabled");
-        $j("#unpublish_item").addClass("disabled");
-        $j("#unpublish_item").unbind();
+        $j("#unpublish_all").removeClass("enabled");
+        $j("#unpublish_all").addClass("disabled");
+        $j("#unpublish_all").unbind();
 
         $j("#go_to_item_location").removeClass("enabled");
         $j("#go_to_item_location").addClass("disabled");
@@ -143,7 +150,7 @@
         $j("#progBar").show();
 
         // This is the call to my controller where the core service code is used get the list of items
-        Alchemy.Plugins["${PluginName}"].Api.DeletePlusService.getDeletedItems(tcmInput).success(function (items) {
+        Alchemy.Plugins["${PluginName}"].Api.DeletePlusService.getDeletedItems(tcmInput, unlink).success(function (items) {
 
             //disable progress bar
             $j("#progBar").hide();
@@ -167,10 +174,6 @@
             var msg = $messages.createMessage(Tridion.MessageCenter.Implementation.Notification, "Deleted", "Item and all related items are deleted", false, true);
             $messages.registerMessage(msg);
 
-            //todo: refresh main window
-            //$display.getView().refreshList();
-            window.top.frames[0].Tridion.getView().refreshList();
-
         })
         .error(function (type, error) {
             // First arg is a string that shows the type of error i.e. (500 Internal), 2nd arg is object representing
@@ -182,16 +185,16 @@
         });
     }
 
-    function forceUnpublish(tcmInput) {
+    function forceUnpublish(tcmInput, unlink) {
 
         //disable buttons
-        $j("#delete_item").removeClass("enabled");
-        $j("#delete_item").addClass("disabled");
-        $j("#delete_item").unbind();
+        $j("#delete_all").removeClass("enabled");
+        $j("#delete_all").addClass("disabled");
+        $j("#delete_all").unbind();
 
-        $j("#unpublish_item").removeClass("enabled");
-        $j("#unpublish_item").addClass("disabled");
-        $j("#unpublish_item").unbind();
+        $j("#unpublish_all").removeClass("enabled");
+        $j("#unpublish_all").addClass("disabled");
+        $j("#unpublish_all").unbind();
 
         $j("#go_to_item_location").removeClass("enabled");
         $j("#go_to_item_location").addClass("disabled");
@@ -209,7 +212,7 @@
         $j("#progBar").show();
 
         // This is the call to my controller where the core service code is used get the list of items
-        Alchemy.Plugins["${PluginName}"].Api.DeletePlusService.getUnpublishingItems(tcmInput).success(function (items) {
+        Alchemy.Plugins["${PluginName}"].Api.DeletePlusService.getUnpublishingItems(tcmInput, unlink).success(function (items) {
 
             //disable progress bar
             $j("#progBar").hide();
@@ -228,7 +231,7 @@
             //register button handlers
 
             $j("#refresh_items.enabled").click(function () {
-                loadItemsToDelete(tcm, title);
+                loadItemsToDelete(tcm, title, $j("#unlink").prop("checked"));
             });
 
             $j("#close_window.enabled").click(function () {
@@ -252,6 +255,11 @@
 
     function closeWindow() {
         window.close();
+
+        //refresh main window
+        $display.getView().refreshList();
+
+        //$cme.executeCommand("Goto", new Tridion.Cme.Selection(new Tridion.Core.Selection(["tcm:5-59-2"])));
     }
 
     function setupForItemClicked() {

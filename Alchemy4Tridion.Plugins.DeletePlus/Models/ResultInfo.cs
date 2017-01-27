@@ -13,6 +13,8 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Models
 
         public string StackTrace { get; set; }
 
+        public int Level { get; set; }
+
         public string TcmId
         {
             get
@@ -22,6 +24,8 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Models
                 return this.Item.TcmId;
             }
         }
+
+        public string DependentItemTcmId { get; set; }
 
         public ItemType ItemType
         {
@@ -62,7 +66,15 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Models
                 if (this.Status == Status.Delete)
                     return "delete.16x16.png";
                 if (this.Status == Status.Unpublish)
-                    return "publishing-queue.16x16.png";
+                    return "unpublish.16x16.png";
+                if (this.Status == Status.Unlink)
+                    return "unlink.16x16.png";
+                if (this.Status == Status.Unlocalize)
+                    return "unlocalize.16x16.png";
+                if (this.Status == Status.ChangeHistory)
+                    return "change_history.16x16.png";
+                if (this.Status == Status.ChangeSchema)
+                    return "change_schema.16x16.png";
                 if (this.Status == Status.Warning)
                     return "warning.png";
                 if (this.Status == Status.Error)
@@ -91,6 +103,10 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Models
                 return this.Item.WebDav;
             }
         }
+
+        public string TreeIcon { get; set; }
+
+        public int TreeIconLevel { get; set; }
 
     }
 }
