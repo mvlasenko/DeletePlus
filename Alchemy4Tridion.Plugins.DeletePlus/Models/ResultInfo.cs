@@ -104,9 +104,7 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Models
             }
         }
 
-        public string TreeIcon { get; set; }
-
-        public int TreeIconLevel { get; set; }
+        public string TreeIcons { get; set; }
 
     }
 }

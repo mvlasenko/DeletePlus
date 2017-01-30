@@ -40,10 +40,12 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Controllers
 
                 html += CreateItemsHeading();
 
+                bool error = results.Any(x => x.Status == Status.Error);
+
                 // Iterate over all items returned by the above filtered list returned.
                 foreach (ResultInfo result in results)
                 {
-                    html += CreateItem(result, false) + Environment.NewLine;
+                    html += CreateItem(result, false, error) + Environment.NewLine;
                 }
 
                 // Close the div we opened above
@@ -88,10 +90,12 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Controllers
 
                 html += CreateItemsHeading();
 
+                bool error = results.Any(x => x.Status == Status.Error);
+
                 // Iterate over all items returned by the above filtered list returned.
                 foreach (ResultInfo result in results)
                 {
-                    html += CreateItem(result, true) + Environment.NewLine;
+                    html += CreateItem(result, true, error) + Environment.NewLine;
                 }
 
                 // Close the div we opened above
@@ -136,10 +140,12 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Controllers
 
                 html += CreateItemsHeading();
 
+                bool error = results.Any(x => x.Status == Status.Error);
+
                 // Iterate over all items returned by the above filtered list returned.
                 foreach (ResultInfo result in results)
                 {
-                    html += CreateItem(result, true) + Environment.NewLine;
+                    html += CreateItem(result, true, error) + Environment.NewLine;
                 }
 
                 // Close the div we opened above
@@ -178,7 +184,7 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Controllers
             return html;
         }
 
-        private string CreateItem(ResultInfo result, bool disabled)
+        private string CreateItem(ResultInfo result, bool disabled, bool error)
         {
             string html = "";
             if (disabled)
@@ -190,19 +196,15 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Controllers
                 html += string.Format("<tr class=\"item\" id=\"{0}\">", result.TcmId);
             }
 
-            string treeIcons = "";
-
-            for (int i = 0; i < result.TreeIconLevel; i++)
+            if (error)
             {
-                treeIcons += "<img src=\"/Alchemy/Plugins/Delete_Plus/assets/img/tree_vertical.png\" />";
+                html += string.Format("<td class=\"name\" title=\"{0} ({1})\"><div class=\"icon\" style=\"background-image: url(/WebUI/Editors/CME/Themes/Carbon2/icon_v7.1.0.66.627_.png?name={2}&size=16)\"></div><div class=\"title\">{0}</div></td>", result.Title, result.TcmId, result.Icon);
             }
-
-            if (!string.IsNullOrEmpty(result.TreeIcon))
+            else
             {
-                treeIcons += string.Format("<img src=\"/Alchemy/Plugins/Delete_Plus/assets/img/{0}\" />", result.TreeIcon);
+                html += string.Format("<td class=\"name\" title=\"{0} ({1})\"><div class=\"treeicon\" style=\"width: {3}px; text-align: right;\">{4}</div><div class=\"icon\" style=\"background-image: url(/WebUI/Editors/CME/Themes/Carbon2/icon_v7.1.0.66.627_.png?name={2}&size=16)\"></div><div class=\"title\">{0}</div></td>", result.Title, result.TcmId, result.Icon, result.Level * 16, result.TreeIcons);
             }
-
-            html += string.Format("<td class=\"name\" title=\"{0} ({1})\"><div class=\"treeicon\" style=\"width: {3}px; text-align: right;\">{4}</div><div class=\"icon\" style=\"background-image: url(/WebUI/Editors/CME/Themes/Carbon2/icon_v7.1.0.66.627_.png?name={2}&size=16)\"></div><div class=\"title\">{0}</div></td>", result.Title, result.TcmId, result.Icon, result.Level * 16, treeIcons);
+            
             html += string.Format("<td class=\"path\">{0}</td>", result.Path);
             html += string.Format("<td class=\"operation\"><img src=\"/Alchemy/Plugins/Delete_Plus/assets/img/{0}\" title=\"{1}\"/></td>", result.StatusIcon, result.Message.Replace("\"", "'"));
             html += "</tr>";
@@ -211,27 +213,54 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Controllers
 
         private void SetTreeIcons(List<ResultInfo> results)
         {
-            int i = 0;
             foreach (ResultInfo result in results)
             {
-                List<ResultInfo> childResults = results.Where(x => x.DependentItemTcmId == result.TcmId).ToList();
+                List<ResultInfo> childResults = results.Where(x => x.DependentItemTcmId == result.TcmId && x.Level > 0).ToList();
                 int j = 0;
                 foreach (ResultInfo childResult in childResults)
                 {
-                    childResult.TreeIcon = j == 0 ? "tree_top.png" : "tree_middle.png";
+                    childResult.TreeIcons = string.Format("<img src=\"/Alchemy/Plugins/Delete_Plus/assets/img/{0}\" />", j == 0 ? "tree_top.png" : "tree_middle.png");
                     j++;
                 }
+            }
 
-                for (int j1 = 0; j1 < i; j1++)
+            for (int index = 0; index < results.Count; index++)
+            {
+                ResultInfo result = results[index];
+                result.TreeIcons = GetTreeIcons(results, index) + result.TreeIcons;
+            }
+        }
+
+        private string GetTreeIcons(List<ResultInfo> results, int index)
+        {
+            ResultInfo result = results[index];
+
+            if(result.Level <= 1)
+                return "";
+
+            if (result.Level == 2)
+            {
+                for (int i = 0; i < index; i++)
                 {
-                    if (results[j1].Level < result.Level)
+                    if (results[i].Level == 1)
                     {
-                        result.TreeIconLevel = 1;
+                        return "<img src=\"/Alchemy/Plugins/Delete_Plus/assets/img/tree_vertical.png\" />";
                     }
                 }
-
-                i++;
             }
+
+            if (result.Level == 3)
+            {
+                for (int i = 0; i < index; i++)
+                {
+                    if (results[i].Level == 1)
+                    {
+                        return "<img src=\"/Alchemy/Plugins/Delete_Plus/assets/img/tree_vertical.png\" /><img src=\"/Alchemy/Plugins/Delete_Plus/assets/img/tree_vertical.png\" />";
+                    }
+                }
+            }
+
+            return "";
         }
 
     }

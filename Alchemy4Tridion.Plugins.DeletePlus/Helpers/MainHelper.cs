@@ -2155,7 +2155,7 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                 }
             }
 
-            DeleteTridionObject(client, tcmFolder, delete, unpublish, unlink, results, tcmFolder, true, level);
+            DeleteTridionObject(client, tcmFolder, delete, unpublish, unlink, results, tcmDependentItem, true, level);
         }
 
         public static void DeletePublication(SessionAwareCoreServiceClient client, string tcmPublication, bool delete, bool unpublish, bool unlink, List<ResultInfo> results, string tcmDependentItem = "", int level = 0)

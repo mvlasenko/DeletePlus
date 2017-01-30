@@ -106,6 +106,7 @@
     <Content Include="Static\Images\favicon.png" />
     <Content Include="Static\Images\info.png" />
     <Content Include="Static\Images\success.png" />
+    <Content Include="Static\Images\tree_empty.png" />
     <Content Include="Static\Images\tree_middle.png" />
     <Content Include="Static\Images\tree_top.png" />
     <Content Include="Static\Images\tree_vertical.png" />

@@ -19,14 +19,26 @@ Alchemy.command("${PluginName}", "DeletePlus", {
      */
     isEnabled: function (selection) {
 
-        if (selection.getCount() == 0)
+        if (selection.getCount() === 0)
             return false;
 
-        //not enabled for publication
-        if (selection.getItem(0).indexOf("tcm:0-") > -1)
-            return false;
+        var itemUri = selection.getItem(0);
+        if (itemUri) {
+            var itemType = $models.getItemType(itemUri);
+            return itemType === $const.ItemType.COMPONENT
+                || itemType === $const.ItemType.FOLDER
+                || itemType === $const.ItemType.PAGE
+                || itemType === $const.ItemType.STRUCTURE_GROUP
+                || itemType === $const.ItemType.KEYWORD
+                || itemType === $const.ItemType.CATEGORY
+                || itemType === $const.ItemType.SCHEMA
+                || itemType === $const.ItemType.COMPONENT_TEMPLATE
+                || itemType === $const.ItemType.PAGE_TEMPLATE
+                || itemType === $const.ItemType.TEMPLATE_BUILDING_BLOCK
+            ;
+        }
 
-        return true;
+        return false;
     },
 
     /**
@@ -34,7 +46,21 @@ Alchemy.command("${PluginName}", "DeletePlus", {
      * @returns {boolean}
      */
     isAvailable: function (selection) {
-        return true;
+
+        if (selection.getCount() === 0)
+            return false;
+
+        var itemUri = selection.getItem(0);
+        if (itemUri) {
+            var itemType = $models.getItemType(itemUri);
+            return itemType === $const.ItemType.FOLDER
+                || itemType === $const.ItemType.STRUCTURE_GROUP
+                || itemType === $const.ItemType.KEYWORD
+                || itemType === $const.ItemType.CATEGORY
+            ;
+        }
+
+        return false;
     },
 
     /**
