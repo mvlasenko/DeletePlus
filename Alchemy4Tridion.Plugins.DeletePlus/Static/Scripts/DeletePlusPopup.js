@@ -257,9 +257,11 @@
         window.close();
 
         //refresh main window
-        $display.getView().refreshList();
-
-        //$cme.executeCommand("Goto", new Tridion.Cme.Selection(new Tridion.Core.Selection(["tcm:5-59-2"])));
+        var p = this.properties;
+        var c = p.controls;
+        var selection = c.ItemsList.getSelection();
+        var items = selection.getItems();
+        c.ItemsList.removeItems(items);
     }
 
     function setupForItemClicked() {

@@ -67,6 +67,11 @@ Alchemy.command("${PluginName}", "DeletePlus", {
      * Executes your command. You can use _execute or execute as the property name.
      */
     execute: function (selection) {
+
+        var p = this.properties;
+        var c = p.controls;
+        c.ItemsList = $controls.getControl($("#FilteredItemsList"), "Tridion.Controls.List");
+
         // Gets the item id and its title
         var itemId = selection.getItem(0);
         var title = $models.getItem(itemId).getStaticTitle();

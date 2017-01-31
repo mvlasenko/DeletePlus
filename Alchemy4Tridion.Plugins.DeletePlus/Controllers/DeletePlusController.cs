@@ -198,15 +198,15 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Controllers
 
             if (error)
             {
-                html += string.Format("<td class=\"name\" title=\"{0} ({1})\"><div class=\"icon\" style=\"background-image: url(/WebUI/Editors/CME/Themes/Carbon2/icon_v7.1.0.66.627_.png?name={2}&size=16)\"></div><div class=\"title\">{0}</div></td>", result.Title, result.TcmId, result.Icon);
+                html += string.Format("<td class=\"name\" title=\"{0} ({1})\"><div class=\"icon\" style=\"background-image: url(/WebUI/Editors/CME/Themes/Carbon2/icon_v7.1.0.66.627_.png?name={2}&size=16)\"></div><div class=\"title\">{0}</div></td>", result.Title.Cut(40), result.TcmId, result.Icon);
             }
             else
             {
-                html += string.Format("<td class=\"name\" title=\"{0} ({1})\"><div class=\"treeicon\" style=\"width: {3}px; text-align: right;\">{4}</div><div class=\"icon\" style=\"background-image: url(/WebUI/Editors/CME/Themes/Carbon2/icon_v7.1.0.66.627_.png?name={2}&size=16)\"></div><div class=\"title\">{0}</div></td>", result.Title, result.TcmId, result.Icon, result.Level * 16, result.TreeIcons);
+                html += string.Format("<td class=\"name\" title=\"{0} ({1})\"><div class=\"treeicon\" style=\"width: {3}px; text-align: right;\">{4}</div><div class=\"icon\" style=\"background-image: url(/WebUI/Editors/CME/Themes/Carbon2/icon_v7.1.0.66.627_.png?name={2}&size=16)\"></div><div class=\"title\">{0}</div></td>", result.Title.Cut(40 - result.Level * 3), result.TcmId, result.Icon, result.Level * 16, result.TreeIcons);
             }
             
-            html += string.Format("<td class=\"path\">{0}</td>", result.Path);
-            html += string.Format("<td class=\"operation\"><img src=\"/Alchemy/Plugins/Delete_Plus/assets/img/{0}\" title=\"{1}\"/></td>", result.StatusIcon, result.Message.Replace("\"", "'"));
+            html += string.Format("<td class=\"path\" title=\"{1} ({2})\">{0}</td>", result.Path.CutPath("\\", 70), result.Path + "\\" + result.Title, result.TcmId);
+            html += string.Format("<td class=\"operation\" title=\"{1}\"><img src=\"/Alchemy/Plugins/Delete_Plus/assets/img/{0}\"/></td>", result.StatusIcon, result.Message.Replace("\"", "'"));
             html += "</tr>";
             return html;
         }

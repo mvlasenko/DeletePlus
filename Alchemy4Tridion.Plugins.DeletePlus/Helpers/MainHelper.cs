@@ -2729,6 +2729,30 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
             return reader.ReadInnerXml();
         }
 
+        public static string CutPath(this string path, string separator, int maxLength)
+        {
+            if (path == null || path.Length <= maxLength)
+                return path;
+
+            var list = path.Split(separator[0]);
+            int itemMaxLength = maxLength / list.Length;
+
+            return string.Join(separator, list.Select(item => item.Cut(itemMaxLength)).ToList());
+        }
+
+        public static string Cut(this string str, int maxLength)
+        {
+            if (maxLength < 5)
+                maxLength = 5;
+
+            if (str.Length > maxLength)
+            {
+                return str.Substring(0, maxLength - 2) + "..";
+
+            }
+            return str;
+        }
+
         #endregion
 
     }
