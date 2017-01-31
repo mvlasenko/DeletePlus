@@ -174,6 +174,8 @@
             var msg = $messages.createMessage(Tridion.MessageCenter.Implementation.Notification, "Deleted", "Item and all related items are deleted", false, true);
             $messages.registerMessage(msg);
 
+            removeItem();
+
         })
         .error(function (type, error) {
             // First arg is a string that shows the type of error i.e. (500 Internal), 2nd arg is object representing
@@ -255,13 +257,21 @@
 
     function closeWindow() {
         window.close();
+    }
 
-        //refresh main window
-        var p = this.properties;
-        var c = p.controls;
-        var selection = c.ItemsList.getSelection();
-        var items = selection.getItems();
-        c.ItemsList.removeItems(items);
+    function removeItem() {
+        try {
+            var url = location.href;
+            var tcm = location.href.substring(url.indexOf("uri=tcm%3A") + 10, url.indexOf("&"));
+            var iframe = window.opener.document.getElementById('FilteredItemsList_frame_details');
+            var iframeDocument = iframe.contentWindow.document;
+            console.log(iframeDocument);
+            var item = $j("#item_tcm:" + tcm, iframeDocument);
+            console.log(item);
+            item.hide();
+        }
+        catch (e) {
+        }
     }
 
     function setupForItemClicked() {
