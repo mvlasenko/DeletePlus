@@ -174,7 +174,7 @@
             var msg = $messages.createMessage(Tridion.MessageCenter.Implementation.Notification, "Deleted", "Item and all related items are deleted", false, true);
             $messages.registerMessage(msg);
 
-            removeItem();
+            refreshDashboard();
 
         })
         .error(function (type, error) {
@@ -256,22 +256,33 @@
     }
 
     function closeWindow() {
-        window.close();
+        //window.close();
+        refreshDashboard();
     }
 
-    function removeItem() {
-        try {
-            var url = location.href;
-            var tcm = location.href.substring(url.indexOf("uri=tcm%3A") + 10, url.indexOf("&"));
-            var iframe = window.opener.document.getElementById('FilteredItemsList_frame_details');
-            var iframeDocument = iframe.contentWindow.document;
-            console.log(iframeDocument);
-            var item = $j("#item_tcm:" + tcm, iframeDocument);
-            console.log(item);
-            item.hide();
-        }
-        catch (e) {
-        }
+    function refreshDashboard() {
+        (function(UI, B, e, a, r, d) {
+            try {
+                while (r = UI.frames[e++]) {
+                    if ((a = r.$display && r.$display.getView()) && a.getId() === B) {
+                        d = a;
+                        break;
+                    }
+                }
+
+                //alert(d.getMainInterface().getFilteredListControl().getList().getCount() + ' items in the dashboard');
+
+                var p = this.properties;
+                var listControl = d.getMainInterface().getFilteredListControl();
+                var m1 = window.opener.top.frames[1];
+                var myitem = d.getMainInterface().getListSelection();
+                var listData = m1.$models.getItem(myitem.getId());
+                var itemId = listData.getParentId();
+                listControl.updateList(itemId, p.listHeadXml, { collapseView: false, removeSelection: true, showResultsInfo: true, listData: listData });
+
+            } catch (x) {
+            };
+        })(window.opener.top, 'DashboardView', 0);
     }
 
     function setupForItemClicked() {
