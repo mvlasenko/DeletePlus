@@ -256,8 +256,7 @@
     }
 
     function closeWindow() {
-        //window.close();
-        refreshDashboard();
+        window.close();
     }
 
     function refreshDashboard() {
@@ -270,15 +269,7 @@
                     }
                 }
 
-                //alert(d.getMainInterface().getFilteredListControl().getList().getCount() + ' items in the dashboard');
-
-                var p = this.properties;
-                var listControl = d.getMainInterface().getFilteredListControl();
-                var m1 = window.opener.top.frames[1];
-                var myitem = d.getMainInterface().getListSelection();
-                var listData = m1.$models.getItem(myitem.getId());
-                var itemId = listData.getParentId();
-                listControl.updateList(itemId, p.listHeadXml, { collapseView: false, removeSelection: true, showResultsInfo: true, listData: listData });
+                r.$display.getView().refreshList();
 
             } catch (x) {
             };
