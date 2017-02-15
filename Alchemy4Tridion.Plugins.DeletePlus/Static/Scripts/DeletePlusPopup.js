@@ -9,9 +9,9 @@
 
     // Grabs the URL of the popup and gets the TCM of the item selected in Tridion from the querystring
     var url = location.href;
-    var tcm = location.href.substring(url.indexOf("uri=tcm%3A") + 10, url.indexOf("&"));
+    var tcm = location.href.substring(url.indexOf("uri=") + 4, url.indexOf("&"));
     // From the page url we want to get the title so we can update our first tab with the title
-    var title = location.href.substring(url.indexOf("title=") + 6, url.indexOf("#")).replace(/\%20/g, ' ');
+    var title = location.href.substring(url.indexOf("title=") + 6, url.indexOf("#")).replace(/\%20/g, ' ').replace(/\%7C/g, '|');
 
     // On page load I display the items not in use within the folder defined by tcm.
     loadItemsToDelete(tcm, title, true);

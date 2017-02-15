@@ -19,13 +19,25 @@ Alchemy.command("${PluginName}", "DeletePlus", {
      */
     isEnabled: function (selection) {
 
-        if (selection.getCount() === 0)
+        var count = selection.getCount();
+        if (!count)
             return false;
 
-        var itemUri = selection.getItem(0);
-        if (itemUri) {
+        for (var i = 0; i < count; i++) {
+
+            var itemUri = selection.getItem(i);
+            if (!itemUri)
+                continue;
+
+            var item = $models.getItem(itemUri);
+
+            var containerUri = item.getOrganizationalItemId();
+            if (containerUri.startsWith("tcm:0-")) // exclude top folder and SG
+                return false;
+
             var itemType = $models.getItemType(itemUri);
-            return itemType === $const.ItemType.COMPONENT
+
+            if (itemType === $const.ItemType.COMPONENT
                 || itemType === $const.ItemType.FOLDER
                 || itemType === $const.ItemType.PAGE
                 || itemType === $const.ItemType.STRUCTURE_GROUP
@@ -34,11 +46,13 @@ Alchemy.command("${PluginName}", "DeletePlus", {
                 || itemType === $const.ItemType.SCHEMA
                 || itemType === $const.ItemType.COMPONENT_TEMPLATE
                 || itemType === $const.ItemType.PAGE_TEMPLATE
-                || itemType === $const.ItemType.TEMPLATE_BUILDING_BLOCK
-            ;
+                || itemType === $const.ItemType.TEMPLATE_BUILDING_BLOCK) { }
+            else {
+                return false;
+            }
         }
 
-        return false;
+        return true;
     },
 
     /**
@@ -47,20 +61,34 @@ Alchemy.command("${PluginName}", "DeletePlus", {
      */
     isAvailable: function (selection) {
 
-        if (selection.getCount() === 0)
+        var count = selection.getCount();
+        if (!count)
             return false;
 
-        var itemUri = selection.getItem(0);
-        if (itemUri) {
+        for (var i = 0; i < count; i++) {
+
+            var itemUri = selection.getItem(i);
+            if (!itemUri)
+                continue;
+
             var itemType = $models.getItemType(itemUri);
-            return itemType === $const.ItemType.FOLDER
+
+            if (itemType === $const.ItemType.COMPONENT
+                || itemType === $const.ItemType.FOLDER
+                || itemType === $const.ItemType.PAGE
                 || itemType === $const.ItemType.STRUCTURE_GROUP
                 || itemType === $const.ItemType.KEYWORD
                 || itemType === $const.ItemType.CATEGORY
-            ;
+                || itemType === $const.ItemType.SCHEMA
+                || itemType === $const.ItemType.COMPONENT_TEMPLATE
+                || itemType === $const.ItemType.PAGE_TEMPLATE
+                || itemType === $const.ItemType.TEMPLATE_BUILDING_BLOCK) { }
+            else {
+                return false;
+            }
         }
 
-        return false;
+        return true;
     },
 
     /**
@@ -68,11 +96,25 @@ Alchemy.command("${PluginName}", "DeletePlus", {
      */
     execute: function (selection) {
 
+        var uri = "";
+        var title = "";
+
         // Gets the item id and its title
-        var itemId = selection.getItem(0);
-        var title = $models.getItem(itemId).getStaticTitle();
+        var count = selection.getCount();
+        for (var i = 0; i < count; i++) {
+
+            var itemUri = selection.getItem(i);
+            uri += itemUri.replace("tcm:", "");
+            title += $models.getItem(itemUri).getStaticTitle();
+
+            if (i < count - 1) {
+                uri += "|";
+                title += " | ";
+            }
+        }
+
         // Sets the url of a popup window, passing through params for the ID of the selected folder/item
-        var url = "${ViewsUrl}DeletePlusPopup.aspx?uri=" + itemId + "&title=" + title;
+        var url = "${ViewsUrl}DeletePlusPopup.aspx?uri=" + uri + "&title=" + title;
         // Creates a popup with the above URL
         var popup = $popup.create(url, "menubar=no,location=no,resizable=no,scrollbars=no,status=no,width=800,height=450,top=10,left=10", null);
         popup.open();

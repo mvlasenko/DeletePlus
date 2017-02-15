@@ -106,5 +106,7 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Models
 
         public string TreeIcons { get; set; }
 
+        public bool Excluded { get; set; }
+
     }
 }

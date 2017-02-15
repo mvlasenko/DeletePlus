@@ -34,7 +34,7 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Controllers
                 string html = "<table class=\"usingItems results\">";
 
                 List<ResultInfo> results  = new List<ResultInfo>();
-                MainHelper.Delete(this.Client, "tcm:" + tcmItem, false, false, unlink, results);
+                MainHelper.Delete(this.Client, tcmItem.Split('|').Select(x => "tcm:" + x).ToList(), false, false, unlink, results);
 
                 SetTreeIcons(results);
 
@@ -84,7 +84,7 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Controllers
                 string html = "<table class=\"usingItems results\">";
 
                 List<ResultInfo> results = new List<ResultInfo>();
-                MainHelper.Delete(this.Client, "tcm:" + tcmItem, true, false, unlink, results);
+                MainHelper.Delete(this.Client, tcmItem.Split('|').Select(x => "tcm:" + x).ToList(), true, false, unlink, results);
 
                 SetTreeIcons(results);
 
@@ -95,7 +95,7 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Controllers
                 // Iterate over all items returned by the above filtered list returned.
                 foreach (ResultInfo result in results)
                 {
-                    html += CreateItem(result, true, error) + Environment.NewLine;
+                    html += CreateItem(result, result.Status == Status.Delete, error) + Environment.NewLine;
                 }
 
                 // Close the div we opened above
@@ -134,7 +134,7 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Controllers
                 string html = "<table class=\"usingItems results\">";
                 
                 List<ResultInfo> results = new List<ResultInfo>();
-                MainHelper.Delete(this.Client, "tcm:" + tcmItem, true, true, unlink, results);
+                MainHelper.Delete(this.Client, tcmItem.Split('|').Select(x => "tcm:" + x).ToList(), true, true, unlink, results);
 
                 SetTreeIcons(results);
 
@@ -145,7 +145,7 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Controllers
                 // Iterate over all items returned by the above filtered list returned.
                 foreach (ResultInfo result in results)
                 {
-                    html += CreateItem(result, true, error) + Environment.NewLine;
+                    html += CreateItem(result, false, error) + Environment.NewLine;
                 }
 
                 // Close the div we opened above
@@ -186,6 +186,9 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Controllers
 
         private string CreateItem(ResultInfo result, bool disabled, bool error)
         {
+            if(result.Excluded)
+                return "";
+
             string html = "";
             if (disabled)
             {
@@ -213,9 +216,19 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Controllers
 
         private void SetTreeIcons(List<ResultInfo> results)
         {
+            //excluded repeating items
+            for (int index = 0; index < results.Count; index++)
+            {
+                ResultInfo result = results[index];
+                result.Excluded = results.Take(index).Any(x => x.TcmId == result.TcmId && x.Status == result.Status);
+            }
+
             foreach (ResultInfo result in results)
             {
-                List<ResultInfo> childResults = results.Where(x => x.DependentItemTcmId == result.TcmId && x.Level > 0).ToList();
+                if(result.Excluded)
+                    continue;
+
+                List<ResultInfo> childResults = results.Where(x => x.DependentItemTcmId.GetId() == result.TcmId.GetId() && x.Level > 0).ToList();
                 int j = 0;
                 foreach (ResultInfo childResult in childResults)
                 {
@@ -227,6 +240,9 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Controllers
             for (int index = 0; index < results.Count; index++)
             {
                 ResultInfo result = results[index];
+                if (result.Excluded)
+                    continue;
+
                 result.TreeIcons = GetTreeIcons(results, index) + result.TreeIcons;
             }
         }
@@ -238,26 +254,26 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Controllers
             if(result.Level <= 1)
                 return "";
 
-            if (result.Level == 2)
-            {
-                for (int i = 0; i < index; i++)
-                {
-                    if (results[i].Level == 1)
-                    {
-                        return "<img src=\"/Alchemy/Plugins/Delete_Plus/assets/img/tree_vertical.png\" />";
-                    }
-                }
-            }
+            var previous = results.Take(index);
 
-            if (result.Level == 3)
+            if (previous.Any(x => x.Level < result.Level))
             {
-                for (int i = 0; i < index; i++)
+                string res = "";
+
+                int minLevel = previous.Select(x => x.Level).Min();
+                int prevLevel = previous.Last(x => x.Level < result.Level).Level;
+
+                for (int i = minLevel - 1; i < prevLevel; i++)
                 {
-                    if (results[i].Level == 1)
-                    {
-                        return "<img src=\"/Alchemy/Plugins/Delete_Plus/assets/img/tree_vertical.png\" /><img src=\"/Alchemy/Plugins/Delete_Plus/assets/img/tree_vertical.png\" />";
-                    }
+                    res += "<img src=\"/Alchemy/Plugins/Delete_Plus/assets/img/tree_vertical.png\" />";
                 }
+
+                for (int i = prevLevel + 1; i < result.Level; i++)
+                {
+                    res += "<img src=\"/Alchemy/Plugins/Delete_Plus/assets/img/tree_empty.png\" />";
+                }
+
+                return res;
             }
 
             return "";

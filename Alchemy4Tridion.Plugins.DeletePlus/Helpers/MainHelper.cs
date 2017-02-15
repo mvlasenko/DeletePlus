@@ -370,6 +370,14 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
 
         #region Tridion delete
 
+        public static void Delete(SessionAwareCoreServiceClient client, List<string> tcmItemList, bool delete, bool unpublish, bool unlink, List<ResultInfo> results)
+        {
+            foreach (string tcmItem in tcmItemList)
+            {
+                Delete(client, tcmItem, delete, unpublish, unlink, results);
+            }
+        }
+
         public static void Delete(SessionAwareCoreServiceClient client, string tcmItem, bool delete, bool unpublish, bool unlink, List<ResultInfo> results)
         {
             ItemType itemType = GetItemType(tcmItem);
@@ -454,26 +462,18 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                     status = RemoveFolderLinkedSchema(client, tcmItem, out stackTraceMessage);
                 }
 
-                //remove metadata schema
-                if (dependentItemType == ItemType.Schema)
-                {
-                    status = RemoveMetadataSchema(client, tcmItem, tcmDependentItem, out stackTraceMessage);
-                }
-
                 //remove parameters schema
-                if (dependentItemType == ItemType.Schema && itemData is TemplateData)
+                if (itemData is TemplateData && dependentItemType == ItemType.Schema && dependentItemData != null && ((SchemaData)dependentItemData).Purpose == SchemaPurpose.TemplateParameters)
                 {
                     status = RemoveParameterSchema(client, tcmItem, tcmDependentItem, out stackTraceMessage);
                 }
-
                 //remove component template linked schema
-                if (itemType == ItemType.ComponentTemplate && dependentItemType == ItemType.Schema)
+                else if (itemType == ItemType.ComponentTemplate && dependentItemType == ItemType.Schema && dependentItemData != null && ((SchemaData)dependentItemData).Purpose == SchemaPurpose.Component)
                 {
                     status = RemoveCTLinkedSchema(client, tcmItem, tcmDependentItem, out stackTraceMessage);
                 }
-
                 //remove CP
-                if (itemType == ItemType.Page && (dependentItemType == ItemType.Component || dependentItemType == ItemType.ComponentTemplate))
+                else if (itemType == ItemType.Page && (dependentItemType == ItemType.Component || dependentItemType == ItemType.ComponentTemplate))
                 {
                     status = RemoveComponentPresentation(client, tcmItem, tcmDependentItem, out stackTraceMessage);
                 }
@@ -523,6 +523,16 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
 
                     status = RemoveLinkFromMetadata(client, tcmItem, tcmDependentItem, out stackTraceMessage);
                 }
+                //remove component link schema
+                else if (itemType == ItemType.Schema && dependentItemType == ItemType.Schema)
+                {
+                    status = RemoveSchemaLink(client, tcmItem, tcmDependentItem, out stackTraceMessage);
+                }
+                //remove metadata schema
+                else if (dependentItemType == ItemType.Schema && dependentItemData != null && ((SchemaData)dependentItemData).Purpose == SchemaPurpose.Metadata)
+                {
+                    status = RemoveMetadataSchema(client, tcmItem, tcmDependentItem, out stackTraceMessage);
+                }
 
                 if (status == LinkStatus.Found && itemData is VersionedItemData)
                     status = RemoveHistory(client, tcmItem, tcmDependentItem, out stackTraceMessage);
@@ -541,26 +551,18 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                     status = CheckRemoveFolderLinkedSchema(client, tcmItem);
                 }
 
-                //check if possible to remove metadata schema
-                if (dependentItemType == ItemType.Schema)
-                {
-                    status = CheckRemoveMetadataSchema(client, tcmItem, tcmDependentItem);
-                }
-
                 //check if possible to remove parameters schema
-                if (dependentItemType == ItemType.Schema && itemData is TemplateData)
+                if (itemData is TemplateData && dependentItemType == ItemType.Schema && dependentItemData != null && ((SchemaData)dependentItemData).Purpose == SchemaPurpose.TemplateParameters)
                 {
                     status = CheckRemoveParameterSchema(client, tcmItem, tcmDependentItem);
                 }
-
                 //check if possible to remove component template linked schema
-                if (itemType == ItemType.ComponentTemplate && dependentItemType == ItemType.Schema)
+                else if (itemType == ItemType.ComponentTemplate && dependentItemType == ItemType.Schema && dependentItemData != null && ((SchemaData)dependentItemData).Purpose == SchemaPurpose.Component)
                 {
                     status = CheckRemoveCTLinkedSchema(client, tcmItem, tcmDependentItem);
                 }
-
                 //check if possible to remove CP
-                if (itemType == ItemType.Page && (dependentItemType == ItemType.Component || dependentItemType == ItemType.ComponentTemplate))
+                else if (itemType == ItemType.Page && (dependentItemType == ItemType.Component || dependentItemType == ItemType.ComponentTemplate))
                 {
                     status = CheckRemoveComponentPresentation(client, tcmItem, tcmDependentItem);
                 }
@@ -607,6 +609,16 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                         CheckRemoveSchemaMandatoryLinkFields(client, itemData, tcmDependentItem, results, level);
                         status = LinkStatus.Found;
                     }
+                }
+                //check if possible to remove component link schema
+                else if (itemType == ItemType.Schema && dependentItemType == ItemType.Schema)
+                {
+                    status = CheckRemoveSchemaLink(client, tcmItem, tcmDependentItem);
+                }
+                //check if possible to remove metadata schema
+                else if (dependentItemType == ItemType.Schema && dependentItemData != null && ((SchemaData)dependentItemData).Purpose == SchemaPurpose.Metadata)
+                {
+                    status = CheckRemoveMetadataSchema(client, tcmItem, tcmDependentItem);
                 }
 
                 if (status == LinkStatus.Found)
@@ -1795,6 +1807,129 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
             return LinkStatus.NotFound;
         }
 
+        private static LinkStatus RemoveSchemaLink(SessionAwareCoreServiceClient client, string linkSchemaUri, string schemaUri, out string stackTraceMessage)
+        {
+            stackTraceMessage = "";
+
+            SchemaData schema = ReadItem(client, schemaUri) as SchemaData;
+            if (schema == null)
+                return LinkStatus.NotFound;
+
+            if (schema.BluePrintInfo.IsShared == true)
+            {
+                schemaUri = GetBluePrintTopTcmId(client, schemaUri);
+
+                schema = ReadItem(client, schemaUri) as SchemaData;
+                if (schema == null)
+                    return LinkStatus.NotFound;
+            }
+
+            SchemaFieldsData schemaFieldsData = client.ReadSchemaFields(schemaUri, false, null);
+
+            if (schema.Purpose != SchemaPurpose.Metadata && schemaFieldsData.Fields != null && schemaFieldsData.Fields.Any())
+            {
+                List<ItemFieldDefinitionData> schemaFields = schemaFieldsData.Fields.ToList();
+
+                //remove component link schema
+                foreach (ComponentLinkFieldDefinitionData field in schemaFields.OfType<ComponentLinkFieldDefinitionData>())
+                {
+                    field.AllowedTargetSchemas = field.AllowedTargetSchemas.Where(x => x.IdRef.GetId() != linkSchemaUri.GetId()).ToArray();
+                }
+
+                //remove embedded schema
+                schemaFieldsData.Fields = schemaFields.Where(field => !(field is EmbeddedSchemaFieldDefinitionData) || ((EmbeddedSchemaFieldDefinitionData)field).EmbeddedSchema.IdRef.GetId() != linkSchemaUri.GetId()).ToArray();
+            }
+
+            if (schemaFieldsData.MetadataFields != null && schemaFieldsData.MetadataFields.Any())
+            {
+                List<ItemFieldDefinitionData> metadataSchemaFields = schemaFieldsData.MetadataFields.ToList();
+
+                //remove component link schema
+                foreach (ComponentLinkFieldDefinitionData field in metadataSchemaFields.OfType<ComponentLinkFieldDefinitionData>())
+                {
+                    field.AllowedTargetSchemas = field.AllowedTargetSchemas.Where(x => x.IdRef.GetId() != linkSchemaUri.GetId()).ToArray();
+                }
+
+                //remove embedded schema
+                schemaFieldsData.MetadataFields = metadataSchemaFields.Where(field => !(field is EmbeddedSchemaFieldDefinitionData) || ((EmbeddedSchemaFieldDefinitionData)field).EmbeddedSchema.IdRef.GetId() != linkSchemaUri.GetId()).ToArray();
+            }
+
+            try
+            {
+                schema = client.CheckOut(schema.Id, true, new ReadOptions()) as SchemaData;
+            }
+            catch (Exception ex)
+            {
+
+            }
+
+            if (schema == null)
+                return LinkStatus.NotFound;
+
+            schema.Xsd = client.ConvertSchemaFieldsToXsd(schemaFieldsData).ToString();
+
+            try
+            {
+                schema = (SchemaData)client.Update(schema, new ReadOptions());
+                client.CheckIn(schema.Id, new ReadOptions());
+                return LinkStatus.Found;
+            }
+            catch (Exception ex)
+            {
+                stackTraceMessage = ex.Message;
+                if (schema == null)
+                    return LinkStatus.Error;
+
+                client.UndoCheckOut(schema.Id, true, new ReadOptions());
+                return LinkStatus.Error;
+            }
+        }
+
+        private static LinkStatus CheckRemoveSchemaLink(SessionAwareCoreServiceClient client, string linkSchemaUri, string schemaUri)
+        {
+            SchemaData schema = ReadItem(client, schemaUri) as SchemaData;
+            if (schema == null)
+                return LinkStatus.NotFound;
+
+            SchemaFieldsData schemaFieldsData = client.ReadSchemaFields(schemaUri, false, null);
+
+            if (schema.Purpose != SchemaPurpose.Metadata && schemaFieldsData.Fields != null && schemaFieldsData.Fields.Any())
+            {
+                List<ItemFieldDefinitionData> schemaFields = schemaFieldsData.Fields.ToList();
+
+                //check if component link schema exists
+                if (schemaFields.OfType<ComponentLinkFieldDefinitionData>().Any(field => field.AllowedTargetSchemas.Any(x => x.IdRef.GetId() == linkSchemaUri.GetId())))
+                {
+                    return LinkStatus.Found;
+                }
+
+                //check if embedded schema exists
+                if (schemaFields.OfType<EmbeddedSchemaFieldDefinitionData>().Any(field => field.EmbeddedSchema.IdRef.GetId() == linkSchemaUri.GetId()))
+                {
+                    return LinkStatus.Found;
+                }
+            }
+
+            if (schemaFieldsData.MetadataFields != null && schemaFieldsData.MetadataFields.Any())
+            {
+                List<ItemFieldDefinitionData> metadataSchemaFields = schemaFieldsData.MetadataFields.ToList();
+
+                //check if component link schema exists
+                if (metadataSchemaFields.OfType<ComponentLinkFieldDefinitionData>().Any(field => field.AllowedTargetSchemas.Any(x => x.IdRef.GetId() == linkSchemaUri.GetId())))
+                {
+                    return LinkStatus.Found;
+                }
+
+                //check if embedded schema exists
+                if (metadataSchemaFields.OfType<EmbeddedSchemaFieldDefinitionData>().Any(field => field.EmbeddedSchema.IdRef.GetId() == linkSchemaUri.GetId()))
+                {
+                    return LinkStatus.Found;
+                }
+            }
+
+            return LinkStatus.NotFound;
+        }
+
         private static LinkStatus RemoveHistory(SessionAwareCoreServiceClient client, string tcmItem, string parentTcmId, out string stackTraceMessage)
         {
             stackTraceMessage = "";
@@ -1879,13 +2014,18 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                     return;
             }
 
-            bool isAnyLocalized = IsAnyLocalized(client, tcmItem);
-
-            List<string> usingItems = GetUsingItems(client, tcmItem);
-            List<string> usingCurrentItems = GetUsingCurrentItems(client, tcmItem);
-
             if (currentVersion)
             {
+                List<string> usingItems = GetUsingItems(client, tcmItem);
+                List<string> usingCurrentItems = GetUsingCurrentItems(client, tcmItem);
+
+                //bluprint-independent distinct
+                if (!unlink)
+                {
+                    usingItems = BluePrintDistinct(client, usingItems);
+                    usingCurrentItems = BluePrintDistinct(client, usingCurrentItems);
+                }
+
                 foreach (string usingItem in usingItems)
                 {
                     //using category includes category into using list
@@ -1941,21 +2081,27 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
             }
             else if (delete)
             {
+                List<ItemInfo> localizations = GetLocalizations(client, tcmItem, itemData.ToItem());
+
                 //unlocalize before delete
-                if (isAnyLocalized)
+                if (localizations.Count > 1)
                 {
                     try
                     {
-                        UnLocalizeAll(client, tcmItem);
-
-                        results.Add(new ResultInfo
+                        foreach (ItemInfo localization in localizations.Where(x => x.TcmId != tcmItem))
                         {
-                            Message = string.Format("Unlocalized item \"{0}\"", itemData.GetWebDav()),
-                            Item = itemData.ToItem(),
-                            Status = Status.Success,
-                            Level = level,
-                            DependentItemTcmId = tcmDependentItem
-                        });
+                            UnLocalize(client, localization);
+
+                            results.Add(new ResultInfo
+                            {
+                                Message = string.Format("Unlocalized item \"{0}\"", itemData.GetWebDav()),
+                                Item = localization,
+                                Status = Status.Success,
+                                Level = level,
+                                DependentItemTcmId = tcmDependentItem
+                            });
+
+                        }
                     }
                     catch (Exception ex)
                     {
@@ -2058,16 +2204,21 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                     }
                 }
 
-                if (isAnyLocalized)
+                List<ItemInfo> localizations = GetLocalizations(client, tcmItem, itemData.ToItem());
+
+                if (localizations.Count > 1)
                 {
-                    results.Add(new ResultInfo
+                    foreach (ItemInfo localization in localizations.Where(x => x.TcmId != tcmItem))
                     {
-                        Message = string.Format("Unlocalize item \"{0}\"", itemData.GetWebDav()),
-                        Item = itemData.ToItem(),
-                        Status = Status.Unlocalize,
-                        Level = level,
-                        DependentItemTcmId = tcmDependentItem
-                    });
+                        results.Add(new ResultInfo
+                        {
+                            Message = string.Format("Unlocalize item \"{0}\"", itemData.GetWebDav()),
+                            Item = localization,
+                            Status = Status.Unlocalize,
+                            Level = level,
+                            DependentItemTcmId = tcmDependentItem
+                        });
+                    }
                 }
 
                 if (!currentVersion)
@@ -2130,24 +2281,23 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
                 return;
             }
 
-            List<BluePrintNodeData> bluePrintItems = GetBluePrintItems(client, tcmFolder);
+            List<ItemInfo> bluePrintItems = GetBluePrintItems(client, tcmFolder);
             bluePrintItems.Reverse();
 
-            foreach (BluePrintNodeData bluePrintItem in bluePrintItems)
+            foreach (ItemInfo bluePrintItem in bluePrintItems)
             {
-                List<ItemInfo> childItems = GetItemsByParentContainer(client, bluePrintItem.Item.Id).Where(x => x.IsLocal).ToList();
+                List<ItemInfo> childItems = GetItemsByParentContainer(client, bluePrintItem.TcmId).Where(x => x.IsLocal).ToList();
                 
                 //delete inner items
                 foreach (ItemInfo childItem in childItems)
                 {
-                    if (childItem.ItemType == ItemType.Folder || childItem.ItemType == ItemType.StructureGroup)
+                    if (childItem.ItemType == ItemType.Folder || childItem.ItemType == ItemType.StructureGroup || childItem.ItemType == ItemType.Category)
                     {
                         DeleteFolderOrStructureGroup(client, childItem.TcmId, delete, unpublish, unlink, results, tcmFolder, level + 1);
                     }
                     else
                     {
-                        if (ExistsItem(client, childItem.TcmId))
-                            DeleteTridionObject(client, childItem.TcmId, delete, unpublish, unlink, results, tcmFolder, true, level + 1);
+                        DeleteTridionObject(client, childItem.TcmId, delete, unpublish, unlink, results, tcmFolder, true, level + 1);
                     }
 
                     if (results.Any(x => x.Status == Status.Error))
@@ -2194,7 +2344,15 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
             }
 
             //delete dependent publications
+
             List<string> usingItems = GetUsingItems(client, tcmPublication);
+
+            //bluprint-independent distinct
+            if (!unlink)
+            {
+                usingItems = BluePrintDistinct(client, usingItems);
+            }
+
             foreach (string usingItem in usingItems)
             {
                 ItemType itemType = GetItemType(usingItem);
@@ -2268,7 +2426,7 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
 
         private static Dictionary<string, ItemInfo> GetPublishedItems(SessionAwareCoreServiceClient client, ItemInfo item)
         {
-            return client.GetListPublishInfo(item.TcmId).ToDictionary(publishData => publishData.PublicationTarget.IdRef, publishData => new ItemInfo {TcmId = GetBluePrintItemTcmId(item.TcmId, publishData.Repository.IdRef), Title = item.Title, Icon = item.Icon, ItemType = item.ItemType, IsPublished = true, FromPub = publishData.Repository.Title, Path = string.IsNullOrEmpty(item.Path) ? string.Empty : item.Path.Replace(item.Path.Trim('\\').Split('\\')[0], publishData.Repository.Title)});
+            return client.GetListPublishInfo(item.TcmId).ToDictionary(publishData => publishData.PublicationTarget.IdRef, publishData => new ItemInfo {TcmId = GetBluePrintItemTcmId(item.TcmId, publishData.Repository.IdRef), Title = item.Title, Icon = item.Icon.Replace("P0", "P1"), ItemType = item.ItemType, IsPublished = true, FromPub = publishData.Repository.Title, Path = string.IsNullOrEmpty(item.Path) ? string.Empty : item.Path.Replace(item.Path.Trim('\\').Split('\\')[0], publishData.Repository.Title)});
         }
 
         public static string[] Publish(SessionAwareCoreServiceClient client, string[] items, string[] targets)
@@ -2333,49 +2491,52 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
             return list2.First().Item.Id;
         }
 
-        public static List<BluePrintNodeData> GetBluePrintItems(SessionAwareCoreServiceClient client, string id)
+        public static List<ItemInfo> GetBluePrintItems(SessionAwareCoreServiceClient client, string id)
         {
             if (id.StartsWith("tcm:0-"))
-                return null;
+                return new List<ItemInfo>();
 
             var list = client.GetSystemWideList(new BluePrintFilterData { ForItem = new LinkToRepositoryLocalObjectData { IdRef = id } });
             if (list == null || list.Length == 0)
-                return null;
+                return new List<ItemInfo>();
 
-            return list.Cast<BluePrintNodeData>().Where(x => x.Item != null).ToList();
+            var list2 = list.Cast<BluePrintNodeData>().Where(x => x.Item != null).ToList();
+
+            return list2.Select(bluePrintNode => bluePrintNode.Item.ToItem(list2.First().Item.Id)).ToList();
         }
 
-        public static bool IsAnyLocalized(SessionAwareCoreServiceClient client, string id)
+        public static List<ItemInfo> GetLocalizations(SessionAwareCoreServiceClient client, string id, ItemInfo item = null)
         {
+            if (id.StartsWith("tcm:0-"))
+                return new List<ItemInfo>();
+
             var list = client.GetSystemWideList(new BluePrintFilterData { ForItem = new LinkToRepositoryLocalObjectData { IdRef = id } });
             if (list == null || list.Length == 0)
-                return false;
-
-            var list2 = list.Cast<BluePrintNodeData>().Where(x => x.Item != null && x.Id == x.Item.BluePrintInfo.OwningRepository.IdRef);
-
-            return list2.Count() > 1;
-        }
-
-        public static void UnLocalizeAll(SessionAwareCoreServiceClient client, string id)
-        {
-            var list = client.GetSystemWideList(new BluePrintFilterData { ForItem = new LinkToRepositoryLocalObjectData { IdRef = id } });
-            if (list == null || list.Length == 0)
-                return;
+                return new List<ItemInfo>();
 
             var list2 = list.Cast<BluePrintNodeData>().Where(x => x.Item != null && x.Id == x.Item.BluePrintInfo.OwningRepository.IdRef).ToList();
 
-            string topTcmId = list2.First().Item.Id;
-
-            foreach (BluePrintNodeData item in list2)
-            {
-                UnLocalize(client, item.Item.ToItem(topTcmId));
-            }
+            return list2.Select(bluePrintNode => bluePrintNode.Item.ToItem(list2.First().Item.Id, item != null ? item.Path.Replace(item.Path.Trim('\\').Split('\\')[0], bluePrintNode.Title) : null)).ToList();
         }
 
-        private static void UnLocalize(SessionAwareCoreServiceClient client, ItemInfo item)
+        public static void UnLocalize(SessionAwareCoreServiceClient client, ItemInfo item)
         {
             if (item.IsLocalized)
                 client.UnLocalize(item.TcmId, new ReadOptions());
+        }
+
+        public static List<string> BluePrintDistinct(SessionAwareCoreServiceClient client, List<string> list)
+        {
+            List<string> res = new List<string>();
+            foreach (string tcm in list)
+            {
+                if (res.Any(x => x.GetId() == tcm.GetId()))
+                    continue;
+
+                res.Add(GetBluePrintTopTcmId(client, tcm));
+            }
+
+            return res;
         }
 
         #endregion
@@ -2526,15 +2687,22 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Helpers
             return res;
         }
 
-        public static ItemInfo ToItem(this RepositoryLocalObjectData dataItem, string topTcmId = null)
+        public static ItemInfo ToItem(this RepositoryLocalObjectData dataItem, string topTcmId = null, string path = null)
         {
             ItemInfo item = new ItemInfo();
             item.TcmId = dataItem.Id;
             item.ItemType = GetItemType(dataItem.Id);
             item.Title = dataItem.Title;
 
-            string webDav = dataItem.GetWebDav();
-            item.Path = string.IsNullOrEmpty(webDav) ? string.Empty : Path.GetDirectoryName(webDav.Replace('/', '\\'));
+            if (!string.IsNullOrEmpty(path))
+            {
+                item.Path = path;
+            }
+            else
+            {
+                string webDav = dataItem.GetWebDav();
+                item.Path = string.IsNullOrEmpty(webDav) ? string.Empty : Path.GetDirectoryName(webDav.Replace('/', '\\'));
+            }
 
             if (item.ItemType == ItemType.Schema)
             {
