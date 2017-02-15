@@ -95,7 +95,7 @@ namespace Alchemy4Tridion.Plugins.DeletePlus.Controllers
                 // Iterate over all items returned by the above filtered list returned.
                 foreach (ResultInfo result in results)
                 {
-                    html += CreateItem(result, result.Status == Status.Delete, error) + Environment.NewLine;
+                    html += CreateItem(result, results.Any(x => x.TcmId.GetId() == result.TcmId.GetId() && x.Status == Status.Delete), error) + Environment.NewLine;
                 }
 
                 // Close the div we opened above

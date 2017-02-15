@@ -4,7 +4,7 @@
   <name>Delete_Plus</name>
   <description><![CDATA[Improved version of Delete button, that allows to delete item even if it has dependencies.
 
-Prior to item is deleted dependent items also deleted or modified.
+Prior to item is deleted dependent items also deleted or modified (dependent on checkbox)
 
 Cases when dependent items can be modified:
 - component presentation is removed from page;
@@ -15,9 +15,11 @@ Cases when dependent items can be modified:
 - parameter schema is removed from any template object;
 - schema keyword field is changed to text field (to unlink category and schema);
 - component link is removed from component/metadata (component link field is changed to non-mandatory, if necessary);
+- component link schema is removed from allowed schemas link (unlink two schemas);
+- embedded schema field is removed (unlink two schemas);
 - element history is deleted, if old dependencies found.
 
-If dependency if not from the list above then dependent item is deleted prior to delete selected item.
+If dependency is not from the list above then dependent item is deleted prior to delete selected item.
 
 It is possible to review all changes before irreversible changes are made.]]></description>
   <version>1.0.0.0</version>
