@@ -22,9 +22,9 @@ Cases when dependent items can be modified:
 If dependency is not from the list above then dependent item is deleted prior to delete selected item.
 
 It is possible to review all changes before irreversible changes are made.]]></description>
-  <version>1.0.0.0</version>
+  <version>1.1.0.0</version>
   <references />
   <settings />
   <versionId>56e97278e4de0209b4c98a71</versionId>
-  <frameworkVersion>0.8.2.0</frameworkVersion>
+  <frameworkVersion>0.8.3.0</frameworkVersion>
 </plugin>

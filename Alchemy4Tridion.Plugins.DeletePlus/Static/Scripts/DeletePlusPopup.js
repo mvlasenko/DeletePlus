@@ -113,10 +113,10 @@
             setupForItemClicked();
 
         })
-        .error(function (type, error) {
-            // First arg is a string that shows the type of error i.e. (500 Internal), 2nd arg is object representing
-            // the error.  For BadRequests and Exceptions, the error message will be in the error.message property.
-            console.log("There was an error", error.message);
+        .error(function (error) {
+            console.log("There was an error", error);
+            $messages.registerError("An error has occurred", error && error.exceptionMessage ? error.exceptionMessage : null, null, true, false);
+
         })
         .complete(function () {
             // this is called regardless of success or failure.
@@ -177,10 +177,9 @@
             refreshDashboard();
 
         })
-        .error(function (type, error) {
-            // First arg is a string that shows the type of error i.e. (500 Internal), 2nd arg is object representing
-            // the error.  For BadRequests and Exceptions, the error message will be in the error.message property.
-            console.log("There was an error", error.message);
+        .error(function (error) {
+            console.log("There was an error", error);
+            $messages.registerError("An error has occurred", error && error.exceptionMessage ? error.exceptionMessage : null, null, true, false);
         })
         .complete(function () {
             // this is called regardless of success or failure.
@@ -245,10 +244,10 @@
             var msg = $messages.createMessage(Tridion.MessageCenter.Implementation.Notification, "Unpublishing", "Unpublishing items have been sent to queue", false, true);
             $messages.registerMessage(msg);
         })
-        .error(function (type, error) {
-            // First arg is a string that shows the type of error i.e. (500 Internal), 2nd arg is object representing
-            // the error.  For BadRequests and Exceptions, the error message will be in the error.message property.
-            console.log("There was an error", error.message);
+        .error(function (error) {
+            console.log("There was an error", error);
+            $messages.registerError("An error has occurred", error && error.exceptionMessage ? error.exceptionMessage : null, null, true, false);
+
         })
         .complete(function () {
             // this is called regardless of success or failure.
